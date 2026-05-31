@@ -1,6 +1,5 @@
 package com.tangtang.stockadvisor.ui.screen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,130 +9,149 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.tangtang.stockadvisor.data.model.PortfolioItem
-import com.tangtang.stockadvisor.data.model.PortfolioSummary
 import com.tangtang.stockadvisor.viewmodel.PortfolioViewModel
+
+data class PortfolioUiState(
+    val isLoading: Boolean = false,
+    val totalMarketValue: Double = 0.0,
+    val totalCost: Double = 0.0,
+    val totalProfitLoss: Double = 0.0,
+    val totalProfitLossPercent: Double = 0.0,
+    val items: List<PortfolioItemUi> = emptyList(),
+    val error: String? = null
+)
+
+data class PortfolioItemUi(
+    val code: String,
+    val name: String,
+    val shares: Int,
+    val avgCost: Double,
+    val currentPrice: Double,
+    val marketValue: Double,
+    val profitLoss: Double,
+    val profitLossPercent: Double
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortfolioScreen(
-    onNavigateToPredict: (String) -> Unit,
+    onBack: () -> Unit,
+    onStockClick: (String) -> Unit,
     viewModel: PortfolioViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearError()
-        }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.loadPortfolio()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("持仓管理") },
-                actions = {
-                    IconButton(onClick = { viewModel.loadPortfolio() }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "刷新")
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        }
     ) { padding ->
-        when {
-            uiState.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (uiState.error != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = uiState.error ?: "未知错误",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    androidx.compose.material3.TextButton(onClick = { viewModel.loadPortfolio() }) {
+                        Text("重试")
+                    }
                 }
             }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(horizontal = 16.dp)
-                ) {
-                    item {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        uiState.capital?.let { capital ->
-                            PortfolioSummaryCard(capital)
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                // 总览卡片
+                PortfolioSummaryCard(
+                    totalMarketValue = uiState.totalMarketValue,
+                    totalCost = uiState.totalCost,
+                    totalProfitLoss = uiState.totalProfitLoss,
+                    totalProfitLossPercent = uiState.totalProfitLossPercent
+                )
 
-                    item {
+                // 持仓列表
+                if (uiState.items.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = "持仓列表",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            text = "暂无持仓",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
                     }
-
-                    if (uiState.holdings.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "暂无持仓",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    } else {
-                        items(uiState.holdings) { item ->
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(uiState.items) { item ->
                             PortfolioItemCard(
                                 item = item,
-                                onClick = { onNavigateToPredict(item.code) }
+                                onClick = { onStockClick(item.code) }
                             )
                         }
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(80.dp))
                     }
                 }
             }
@@ -142,17 +160,25 @@ fun PortfolioScreen(
 }
 
 @Composable
-fun PortfolioSummaryCard(summary: PortfolioSummary) {
-    val pnlColor = if (summary.totalProfitLoss >= 0) Color(0xFFE53935) else Color(0xFF43A047)
+fun PortfolioSummaryCard(
+    totalMarketValue: Double,
+    totalCost: Double,
+    totalProfitLoss: Double,
+    totalProfitLossPercent: Double
+) {
+    val plColor = if (totalProfitLoss >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val prefix = if (totalProfitLoss >= 0) "+" else ""
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "账户总览",
+                text = "持仓总览",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -163,102 +189,102 @@ fun PortfolioSummaryCard(summary: PortfolioSummary) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
+                    Text("总市值", style = MaterialTheme.typography.bodySmall)
                     Text(
-                        text = "总市值",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = String.format("¥%.2f", summary.totalMarketValue),
-                        style = MaterialTheme.typography.headlineSmall,
+                        text = "¥${String.format("%,.2f", totalMarketValue)}",
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        fontSize = 18.sp
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
+                    Text("总盈亏", style = MaterialTheme.typography.bodySmall)
                     Text(
-                        text = "总盈亏",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = String.format("¥%.2f", summary.totalProfitLoss),
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = "$prefix¥${String.format("%,.2f", totalProfitLoss)}",
                         fontWeight = FontWeight.Bold,
-                        color = pnlColor
+                        fontSize = 18.sp,
+                        color = plColor
                     )
                     Text(
-                        text = String.format("%.2f%%", summary.totalProfitLossPercent),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = pnlColor
+                        text = "$prefix${String.format("%.2f", totalProfitLossPercent)}%",
+                        fontSize = 14.sp,
+                        color = plColor
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "总成本: ¥${String.format("%,.2f", totalCost)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
 @Composable
 fun PortfolioItemCard(
-    item: PortfolioItem,
+    item: PortfolioItemUi,
     onClick: () -> Unit
 ) {
-    val pnlColor = if (item.profitLoss >= 0) Color(0xFFE53935) else Color(0xFF43A047)
+    val plColor = if (item.profitLoss >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val prefix = if (item.profitLoss >= 0) "+" else ""
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .androidx.compose.foundation.clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = item.code,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "${item.shares}股",
-                        style = MaterialTheme.typography.bodySmall
+                        text = item.name,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 16.sp
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "成本 ${String.format("%.2f", item.avgCost)}",
+                        text = "${item.code} | ${item.shares}股",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "¥${String.format("%.2f", item.currentPrice)}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        text = "$prefix${String.format("%.2f", item.profitLossPercent)}%",
+                        color = plColor,
+                        fontSize = 14.sp
+                    )
+                }
             }
-            Column(horizontalAlignment = Alignment.End) {
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    text = String.format("%.2f", item.currentPrice),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
+                    text = "成本 ¥${String.format("%.2f", item.avgCost)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = String.format("%.2f", item.profitLoss),
+                    text = "市值 ¥${String.format("%,.2f", item.marketValue)}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = pnlColor
-                )
-                Text(
-                    text = String.format("%.2f%%", item.profitLossPercent),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = pnlColor
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

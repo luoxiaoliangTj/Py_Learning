@@ -1,5 +1,6 @@
 """
 API Routes - Tools endpoints (data download).
+数据下载与状态检查接口，响应格式对齐 Android 端 ApiResponse。
 """
 from fastapi import APIRouter, HTTPException
 from models import DownloadRequest
@@ -22,7 +23,7 @@ async def download_data(request: DownloadRequest):
             source=request.source,
         )
         if result["success"]:
-            return {"success": True, "data": result}
+            return {"code": 200, "message": "下载成功", "data": result}
         else:
             raise HTTPException(status_code=400, detail=result["message"])
     except HTTPException:
@@ -38,6 +39,6 @@ async def check_data_status(symbol: str):
     """
     try:
         result = check_existing_data(symbol)
-        return {"success": True, "data": result}
+        return {"code": 200, "message": "查询成功", "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

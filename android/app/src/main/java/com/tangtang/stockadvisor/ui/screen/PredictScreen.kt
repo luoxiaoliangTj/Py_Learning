@@ -10,148 +10,169 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.tangtang.stockadvisor.data.model.PredictionResult
-import com.tangtang.stockadvisor.data.model.StrategySignal
 import com.tangtang.stockadvisor.viewmodel.PredictViewModel
 
+/**
+ * 预测页面
+ * 显示当前选中股票的日线预测结果、在线预测、交易建议
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PredictScreen(
     symbol: String,
-    onNavigateBack: () -> Unit,
-    onNavigateToBacktest: (String) -> Unit,
+    onBack: () -> Unit,
+    onBacktestClick: (String) -> Unit,
     viewModel: PredictViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
 
+    // 加载日线预测数据
     LaunchedEffect(symbol) {
         viewModel.loadPrediction(symbol)
-    }
-
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearError()
-        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("${uiState.stockName} (${uiState.stockCode})") },
+                title = { Text("预测详情") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* TODO: 分享 */ }) {
+                        Icon(Icons.Default.Share, contentDescription = "分享")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = Color.White
                 )
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.refreshPrediction() }) {
-                Icon(Icons.Filled.Refresh, contentDescription = "刷新")
-            }
         }
     ) { padding ->
         when {
             uiState.isLoading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            uiState.prediction != null -> {
-                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding)
-                        .padding(horizontal = 16.dp)
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
                 ) {
-                    item {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        PriceSummaryCard(uiState)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    item {
-                        PredictionCard(uiState.prediction!!)
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    item {
-                        TextButton(onClick = { onNavigateToBacktest(uiState.stockCode) }) {
-                            Text("查看回测 →")
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    item {
                         Text(
-                            text = "策略信号",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            "正在加载预测数据...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    items(uiState.prediction!!.strategies) { signal ->
-                        StrategySignalItem(signal)
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(80.dp))
                     }
                 }
             }
             uiState.error != null -> {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("加载失败", color = MaterialTheme.colorScheme.error)
+                        Text(
+                            text = uiState.error ?: "未知错误",
+                            color = MaterialTheme.colorScheme.error
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
-                        TextButton(onClick = { viewModel.loadPrediction(symbol) }) {
+                        Button(onClick = { viewModel.loadPrediction(symbol) }) {
                             Text("重试")
                         }
+                    }
+                }
+            }
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 股票信息头部
+                    StockHeaderCard(
+                        symbol = uiState.symbol,
+                        name = uiState.stockName,
+                        currentPrice = uiState.currentPrice
+                    )
+
+                    // 预测区间卡片
+                    PredictionRangeCard(
+                        high = uiState.predictedHigh,
+                        low = uiState.predictedLow,
+                        close = uiState.predictedClose,
+                        confidence = uiState.confidence
+                    )
+
+                    // 在线预测按钮
+                    OnlinePredictionCard(
+                        symbol = symbol,
+                        viewModel = viewModel
+                    )
+
+                    // 交易建议卡片
+                    RecommendationCard(
+                        recommendation = uiState.recommendation,
+                        confidence = uiState.confidence
+                    )
+
+                    // 策略信号列表
+                    if (uiState.signals.isNotEmpty()) {
+                        SignalsCard(signals = uiState.signals)
+                    }
+
+                    // 回测按钮
+                    Button(
+                        onClick = { onBacktestClick(symbol) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.BarChart, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("查看回测报告")
                     }
                 }
             }
@@ -159,26 +180,31 @@ fun PredictScreen(
     }
 }
 
+/**
+ * 股票信息头部卡片
+ */
 @Composable
-fun PriceSummaryCard(uiState: com.tangtang.stockadvisor.viewmodel.PredictUiState) {
+fun StockHeaderCard(symbol: String, name: String, currentPrice: Double) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
             Text(
-                text = uiState.stockName,
+                text = "$name ($symbol)",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "当前价格",
+                text = "现价",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = String.format("¥%.2f", uiState.currentPrice),
+                text = String.format("¥%.2f", currentPrice),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -187,22 +213,19 @@ fun PriceSummaryCard(uiState: com.tangtang.stockadvisor.viewmodel.PredictUiState
     }
 }
 
+/**
+ * 预测区间卡片
+ * 显示支撑位、目标价、压力位和置信度
+ */
 @Composable
-fun PredictionCard(prediction: PredictionResult) {
-    val confidenceColor = when {
-        prediction.confidence >= 0.7 -> Color(0xFF43A047)
-        prediction.confidence >= 0.4 -> Color(0xFFFFA726)
-        else -> Color(0xFFE53935)
-    }
-
+fun PredictionRangeCard(high: Double, low: Double, close: Double, confidence: Double) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "预测结果",
+                text = "预测区间",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -213,86 +236,185 @@ fun PredictionCard(prediction: PredictionResult) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("预测最高", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        text = String.format("¥%.2f", prediction.predictedHigh),
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = "支撑位",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF4CAF50)
+                    )
+                    Text(
+                        text = String.format("¥%.2f", low),
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE53935)
+                        fontSize = 18.sp,
+                        color = Color(0xFF4CAF50)
                     )
                 }
-                Column {
-                    Text("预测最低", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = String.format("¥%.2f", prediction.predictedLow),
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = "目标价",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = String.format("¥%.2f", close),
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF43A047)
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
-                Column {
-                    Text("预测收盘", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = String.format("¥%.2f", prediction.predictedClose),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
+                        text = "压力位",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFF44336)
+                    )
+                    Text(
+                        text = String.format("¥%.2f", high),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color(0xFFF44336)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("置信度: ", style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    text = String.format("%.1f%%", prediction.confidence * 100),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = confidenceColor
-                )
+            Text(
+                text = "置信度: ${String.format("%.0f", confidence * 100)}%",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/**
+ * 在线预测卡片
+ * 点击按钮刷新预测数据（在线预测功能）
+ */
+@Composable
+fun OnlinePredictionCard(
+    symbol: String,
+    viewModel: PredictViewModel
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "在线实时预测",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "基于最新行情数据的实时预测",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = {
+                    // 重新加载预测数据（在线预测）
+                    viewModel.loadPrediction(symbol)
+                }
+            ) {
+                Icon(Icons.Default.Refresh, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("获取实时预测")
             }
         }
     }
 }
 
+/**
+ * 交易建议卡片
+ * 根据推荐类型显示不同颜色
+ */
 @Composable
-fun StrategySignalItem(signal: StrategySignal) {
-    val signalColor = when (signal.signal) {
-        "BUY" -> Color(0xFFE53935)
-        "SELL" -> Color(0xFF43A047)
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+fun RecommendationCard(recommendation: String, confidence: Double) {
+    val (bgColor, textColor, label) = when {
+        recommendation.contains("BUY", ignoreCase = true) -> Triple(
+            Color(0xFF4CAF50), Color.White, "建议买入"
+        )
+        recommendation.contains("SELL", ignoreCase = true) -> Triple(
+            Color(0xFFF44336), Color.White, "建议卖出"
+        )
+        else -> Triple(
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer,
+            "建议观望"
+        )
     }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = textColor
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "综合置信度 ${String.format("%.0f", confidence * 100)}%",
+                style = MaterialTheme.typography.bodyMedium,
+                color = textColor.copy(alpha = 0.8f)
+            )
+        }
+    }
+}
+
+/**
+ * 策略信号卡片
+ * 显示各策略的信号和权重
+ */
+@Composable
+fun SignalsCard(signals: List<com.tangtang.stockadvisor.viewmodel.SignalInfo>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = signal.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = "权重: ${String.format("%.2f", signal.weight)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = signal.signal,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = signalColor
+                text = "策略信号",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            signals.forEach { signal ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = signal.name,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    val signalColor = when (signal.signal) {
+                        "BUY" -> Color(0xFF4CAF50)
+                        "SELL" -> Color(0xFFF44336)
+                        else -> Color.Gray
+                    }
+                    Text(
+                        text = "${signal.signal} (${String.format("%.0f", signal.weight * 100)}%)",
+                        color = signalColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }

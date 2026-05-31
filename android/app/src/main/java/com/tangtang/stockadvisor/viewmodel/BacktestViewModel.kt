@@ -2,7 +2,6 @@ package com.tangtang.stockadvisor.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tangtang.stockadvisor.data.model.BacktestResult
 import com.tangtang.stockadvisor.data.repository.StockRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,14 +12,18 @@ import javax.inject.Inject
 
 data class BacktestUiState(
     val isLoading: Boolean = false,
-    val stockCode: String = "",
+    val symbol: String = "",
     val stockName: String = "",
-    val strategyType: String = "default",
-    val result: BacktestResult? = null,
-    val error: String? = null,
-    val availableStrategies: List<String> = listOf(
-        "default", "kdj", "macd", "rsi", "bollinger", "atr_channel"
-    )
+    val strategyType: String = "channel",
+    val totalReturn: Double = 0.0,
+    val annualReturn: Double = 0.0,
+    val maxDrawdown: Double = 0.0,
+    val sharpeRatio: Double = 0.0,
+    val winRate: Double = 0.0,
+    val totalTrades: Int = 0,
+    val finalCapital: Double = 0.0,
+    val initialCapital: Double = 100000.0,
+    val error: String? = null
 )
 
 @HiltViewModel
@@ -31,31 +34,24 @@ class BacktestViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BacktestUiState())
     val uiState: StateFlow<BacktestUiState> = _uiState.asStateFlow()
 
-    fun setStockCode(code: String, name: String = "") {
-        _uiState.value = _uiState.value.copy(stockCode = code, stockName = name)
-    }
+    fun runBacktest(symbol: String, strategyType: String = "channel") {
+        _uiState.value = BacktestUiState(symbol = symbol, strategyType = strategyType, isLoading = true)
 
-    fun setStrategyType(strategyType: String) {
-        _uiState.value = _uiState.value.copy(strategyType = strategyType)
-    }
-
-    fun runBacktest() {
-        val state = _uiState.value
-        if (state.stockCode.isBlank()) {
-            _uiState.value = state.copy(error = "请输入股票代码")
-            return
-        }
-
-        _uiState.value = state.copy(isLoading = true, error = null)
         viewModelScope.launch {
-            repository.runBacktest(
-                symbol = state.stockCode,
-                strategyType = state.strategyType
-            ).collect { result ->
+            repository.runBacktest(symbol, strategyType).collect { result ->
                 result.onSuccess { backtestResult ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        result = backtestResult
+                        stockName = backtestResult.name,
+                        totalReturn = backtestResult.totalReturn,
+                        annualReturn = backtestResult.annualReturn,
+                        maxDrawdown = backtestResult.maxDrawdown,
+                        sharpeRatio = backtestResult.sharpeRatio,
+                        winRate = backtestResult.winRate,
+                        totalTrades = backtestResult.totalTrades,
+                        finalCapital = backtestResult.finalCapital,
+                        initialCapital = backtestResult.initialCapital,
+                        error = null
                     )
                 }.onFailure { e ->
                     _uiState.value = _uiState.value.copy(
@@ -65,9 +61,5 @@ class BacktestViewModel @Inject constructor(
                 }
             }
         }
-    }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
     }
 }

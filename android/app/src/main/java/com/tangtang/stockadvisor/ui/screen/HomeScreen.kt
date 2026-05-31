@@ -1,5 +1,6 @@
 package com.tangtang.stockadvisor.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,166 +11,207 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tangtang.stockadvisor.data.model.StockInfo
 import com.tangtang.stockadvisor.viewmodel.HomeViewModel
 
+/**
+ * 首页屏幕
+ * 显示股票列表、搜索入口、市场概览
+ * 支持下拉刷新（通过刷新按钮实现，兼容当前 Compose BOM 版本）
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToPredict: (String) -> Unit,
-    onNavigateToSearch: () -> Unit,
+    onStockClick: (String) -> Unit,
+    onSearchClick: () -> Unit,
+    onPortfolioClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearError()
-        }
-    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("股票顾问") },
+                title = {
+                    Text(
+                        "股票预测",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                actions = {
+                    // 刷新按钮（下拉刷新在当前 BOM 版本中不稳定，使用按钮替代）
+                    IconButton(onClick = { viewModel.loadStockList() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                    }
+                    IconButton(onClick = onSearchClick) {
+                        Icon(Icons.Default.Search, contentDescription = "搜索")
+                    }
+                    IconButton(onClick = onPortfolioClick) {
+                        Icon(Icons.Default.Person, contentDescription = "持仓")
+                    }
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, contentDescription = "设置")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
                 )
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
         ) {
+            // 市场概览卡片
+            MarketOverviewCard()
+
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Search bar
-            OutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = { viewModel.searchStocks(it) },
-                label = { Text("搜索股票") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "搜索") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+            // 标题
+            Text(
+                text = "可用股票",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            when {
-                uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+            // 股票列表（加载/错误/数据状态）
+            if (uiState.isLoading && uiState.marketStocks.isEmpty()) {
+                // 首次加载中
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
-                    }
-                }
-                uiState.searchQuery.isNotBlank() && uiState.searchResults.isNotEmpty() -> {
-                    Text(
-                        text = "搜索结果",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LazyColumn {
-                        items(uiState.searchResults) { stock ->
-                            StockItem(
-                                stock = stock,
-                                onClick = { onNavigateToPredict(stock.code) }
-                            )
-                        }
-                    }
-                }
-                uiState.searchQuery.isNotBlank() && uiState.searchResults.isEmpty() && !uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("未找到匹配的股票", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                else -> {
-                    // Watchlist section
-                    if (uiState.watchlist.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "自选股",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            "正在加载股票列表...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else if (uiState.error != null && uiState.marketStocks.isEmpty()) {
+                // 首次加载失败
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = uiState.error ?: "未知错误",
+                            color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        LazyColumn {
-                            items(uiState.watchlist) { stock ->
-                                StockItem(
-                                    stock = stock,
-                                    onClick = { onNavigateToPredict(stock.code) }
-                                )
-                            }
+                        Button(onClick = { viewModel.loadStockList() }) {
+                            Text("重试")
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
-
-                    // Market overview section
+                }
+            } else if (uiState.marketStocks.isEmpty()) {
+                // 空数据
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = "市场概览",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        "暂无股票数据",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            } else {
+                // 显示股票列表
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(uiState.marketStocks) { stock ->
+                        StockListItem(
+                            stock = stock,
+                            onClick = { onStockClick(stock.code) }
+                        )
+                    }
+                }
+            }
+        }
 
-                    if (uiState.marketStocks.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            TextButton(onClick = { viewModel.loadStockList() }) {
-                                Text("加载市场数据")
-                            }
-                        }
-                    } else {
-                        LazyColumn {
-                            items(uiState.marketStocks) { stock ->
-                                StockItem(
-                                    stock = stock,
-                                    onClick = { onNavigateToPredict(stock.code) }
-                                )
-                            }
+        // 非首次加载错误提示（Snackbar 风格）
+        if (uiState.error != null && uiState.marketStocks.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = uiState.error ?: "",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = { viewModel.clearError() }) {
+                            Text("知道了")
                         }
                     }
                 }
@@ -178,36 +220,116 @@ fun HomeScreen(
     }
 }
 
+/**
+ * 市场概览卡片
+ * 展示App核心功能入口
+ */
 @Composable
-fun StockItem(
-    stock: StockInfo,
-    onClick: () -> Unit
-) {
-    val changeColor = when {
-        stock.changePercent > 0 -> Color(0xFFE53935)  // Red for up (A-share convention)
-        stock.changePercent < 0 -> Color(0xFF43A047)  // Green for down
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-
+fun MarketOverviewCard() {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.TrendingUp,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "策略预测",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = "AI驱动",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "回测验证",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = "数据说话",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 股票列表项
+ * 显示：代码头像、名称、代码、现价、涨跌幅
+ */
+@Composable
+fun StockListItem(
+    stock: StockInfo,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 股票代码头像
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stock.code.take(2),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // 名称和代码
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stock.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = stock.code,
@@ -215,25 +337,26 @@ fun StockItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            // 价格和涨跌幅
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = String.format("%.2f", stock.currentPrice),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
                 )
-                Row {
-                    Text(
-                        text = String.format("%.2f", stock.changeAmount),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = changeColor
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = String.format("%.2f%%", stock.changePercent),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = changeColor
-                    )
+                val changeColor = when {
+                    stock.changePercent > 0 -> Color(0xFF4CAF50)
+                    stock.changePercent < 0 -> Color(0xFFF44336)
+                    else -> Color.Gray
                 }
+                val changePrefix = if (stock.changePercent > 0) "+" else ""
+                Text(
+                    text = "$changePrefix${String.format("%.2f", stock.changePercent)}%",
+                    color = changeColor,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }

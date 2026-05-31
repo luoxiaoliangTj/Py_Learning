@@ -1,5 +1,6 @@
 """
 API Routes - Strategy management endpoints.
+策略管理与参数优化接口，响应格式对齐 Android 端 ApiResponse。
 """
 from fastapi import APIRouter, HTTPException
 from models import OptimizeRequest
@@ -37,7 +38,7 @@ async def list_strategies():
     """
     获取所有可用策略列表。
     """
-    return {"success": True, "data": STRATEGY_LIST, "count": len(STRATEGY_LIST)}
+    return {"code": 200, "message": "获取成功", "data": STRATEGY_LIST}
 
 
 @router.post("/optimize", summary="参数优化")
@@ -59,17 +60,16 @@ async def optimize_strategy(request: OptimizeRequest):
             result["best"].pop("portfolio_values", None)
             result["best"].pop("trades", None)
 
-        return {
-            "success": True,
-            "data": {
-                "symbol": request.symbol,
-                "strategy_type": request.strategy_type,
-                "best_params": result["best"]["params"] if result.get("best") else None,
-                "best_sharpe": result["best"]["sharpe"] if result.get("best") else None,
-                "best_return": result["best"]["total_return"] if result.get("best") else None,
-                "all_results": result["all_results"],
-            },
+        response_data = {
+            "code": request.symbol,
+            "name": request.symbol,
+            "strategy_type": request.strategy_type,
+            "best_params": result["best"]["params"] if result.get("best") else None,
+            "best_sharpe": result["best"]["sharpe"] if result.get("best") else None,
+            "best_return": result["best"]["total_return"] if result.get("best") else None,
+            "all_results": result["all_results"],
         }
+        return {"code": 200, "message": "优化完成", "data": response_data}
     except HTTPException:
         raise
     except ValueError as e:
@@ -100,14 +100,13 @@ async def evaluate_strategy(request: OptimizeRequest):
         analyzer = PerformanceAnalyzer()
         evaluation = analyzer.quick_evaluate(df, params)
 
-        return {
-            "success": True,
-            "data": {
-                "symbol": request.symbol,
-                "strategy_type": request.strategy_type,
-                "evaluation": evaluation,
-            },
+        response_data = {
+            "code": request.symbol,
+            "name": request.symbol,
+            "strategy_type": request.strategy_type,
+            "evaluation": evaluation,
         }
+        return {"code": 200, "message": "评估完成", "data": response_data}
     except HTTPException:
         raise
     except Exception as e:

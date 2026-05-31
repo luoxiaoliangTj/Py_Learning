@@ -1,66 +1,60 @@
 """
-FastAPI Backend - Stock Strategy Analysis API
-Entry point: creates the FastAPI app and includes all routers.
-"""
-import sys
-from pathlib import Path
+FastAPI 应用入口 - 股票策略回测与预测系统后端服务。
 
-# Ensure backend/ is on the Python path so `from models import ...` and `from core import ...` work
-BACKEND_DIR = Path(__file__).resolve().parent
-if str(BACKEND_DIR) not in sys.path:
-    sys.path.insert(0, str(BACKEND_DIR))
+注册所有路由模块，配置 CORS 中间件供 Android 端调用。
+"""
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# 导入所有路由模块
+from api.predict import router as predict_router
+from api.backtest import router as backtest_router
 from api.stock import router as stock_router
 from api.portfolio import router as portfolio_router
-from api.tools import router as tools_router
-from api.backtest import router as backtest_router
-from api.predict import router as predict_router
 from api.strategy import router as strategy_router
+from api.tools import router as tools_router
 
+# 创建 FastAPI 应用实例
 app = FastAPI(
-    title="Stock Strategy Analysis API",
-    description="股票策略分析后端 API — 支持日线数据下载、策略回测、参数优化、价格预测等功能",
+    title="股票策略回测与预测系统",
+    description="基于 FastAPI 的股票策略回测、预测与投资组合管理后端 API",
     version="1.0.0",
 )
 
-# CORS middleware — allow all origins for development
+# 配置 CORS 中间件 - 允许所有来源（供 Android 端调用）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],          # 允许所有来源
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],          # 允许所有 HTTP 方法
+    allow_headers=["*"],          # 允许所有请求头
 )
 
-# Include all routers
+# 注册所有路由
+app.include_router(predict_router)
+app.include_router(backtest_router)
 app.include_router(stock_router)
 app.include_router(portfolio_router)
-app.include_router(tools_router)
-app.include_router(backtest_router)
-app.include_router(predict_router)
 app.include_router(strategy_router)
+app.include_router(tools_router)
 
 
-@app.get("/", summary="健康检查")
+@app.get("/", summary="服务状态", tags=["根路径"])
 async def root():
-    """API health check / 服务状态检查."""
+    """根路径 - 返回服务状态信息。"""
     return {
-        "status": "ok",
-        "message": "Stock Strategy Analysis API is running",
-        "endpoints": [
-            "/api/stock/list",
-            "/api/stock/select",
-            "/api/portfolio/holdings",
-            "/api/portfolio/capital",
-            "/api/tools/download",
-            "/api/tools/download/status/{symbol}",
-            "/api/backtest",
-            "/api/predict/daily",
-            "/api/predict/realtime",
-            "/api/strategy/list",
-            "/api/strategy/optimize",
-            "/api/strategy/evaluate",
-        ],
+        "code": 200,
+        "message": "服务运行正常",
+        "data": {
+            "service": "股票策略回测与预测系统 API",
+            "version": "1.0.0",
+            "docs": "/docs",
+        },
     }
+
+
+@app.get("/health", summary="健康检查", tags=["根路径"])
+async def health_check():
+    """健康检查端点。"""
+    return {"code": 200, "message": "healthy", "data": None}
