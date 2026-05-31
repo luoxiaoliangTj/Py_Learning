@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="stock_up">#FF66BB6A</color>
+    <color name="stock_down">#FFEF5350</color>
+    <color name="stock_flat">#FFBDBDBD</color>
+</resources>
