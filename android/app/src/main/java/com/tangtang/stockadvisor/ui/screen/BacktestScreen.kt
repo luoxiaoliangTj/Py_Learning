@@ -1,6 +1,7 @@
 package com.tangtang.stockadvisor.ui.screen
 
 import android.graphics.Color as AndroidColor
+import java.util.ArrayList
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -465,8 +466,8 @@ fun EquityCurveCard(
  * 生成模拟权益曲线数据点
  * 基于总收益率和最大回撤生成合理的权益曲线
  */
-private fun generateEquityCurveEntries(totalReturn: Double, maxDrawdown: Double): List<Entry> {
-    val entries = mutableListOf<Entry>()
+private fun generateEquityCurveEntries(totalReturn: Double, maxDrawdown: Double): ArrayList<Entry> {
+    val entries = ArrayList<Entry>()
     val points = 30  // 30个数据点
     val initialValue = 100000.0
     val finalValue = initialValue * (1 + totalReturn / 100.0)

@@ -14,6 +14,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tangtang.stockadvisor.ui.screen.PortfolioItemUi
 import com.tangtang.stockadvisor.viewmodel.PortfolioViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,7 +109,7 @@ fun PortfolioScreen(
 
 @Composable
 fun PortfolioItemCard(
-    item: com.tangtang.stockadvisor.viewmodel.PortfolioItemUi,
+    item: PortfolioItemUi,
     onClick: () -> Unit
 ) {
     val plColor = when {
