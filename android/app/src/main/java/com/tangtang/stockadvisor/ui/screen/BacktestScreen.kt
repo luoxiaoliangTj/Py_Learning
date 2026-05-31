@@ -485,8 +485,9 @@ private fun generateEquityCurveEntries(totalReturn: Double, maxDrawdown: Double)
         }
         // 添加随机波动
         val noise = (Math.random() * 0.02 - 0.01).toFloat() * initialValue.toFloat()
-        val value = (trendValue + drawdownFactor + noise).toFloat()
-        entries.add(Entry(i.toFloat(), value))
+        val value: Float = (trendValue + drawdownFactor.toDouble() + noise.toDouble()).toFloat()
+        val entry = Entry(i.toFloat(), value)
+        entries.add(entry)
     }
     return entries
 }
