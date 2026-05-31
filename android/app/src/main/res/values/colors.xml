@@ -13,6 +13,9 @@
     <color name="stock_down">#FF43A047</color>
     <color name="stock_flat">#FF757575</color>
 
+    <!-- Launcher icon -->
+    <color name="ic_launcher_background">#1976D2</color>
+
     <!-- Chart colors -->
     <color name="chart_line_primary">#FF1976D2</color>
     <color name="chart_line_secondary">#FFFF6F00</color>
