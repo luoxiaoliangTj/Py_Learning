@@ -26,11 +26,11 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -168,7 +168,7 @@ fun BacktestConfigSection(
                 onExpandedChange = { strategyExpanded = !strategyExpanded }
             ) {
                 OutlinedTextField(
-                    value = uiState.strategy,
+                    value = uiState.strategyType,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("策略类型") },
@@ -183,49 +183,13 @@ fun BacktestConfigSection(
                         DropdownMenuItem(
                             text = { Text(strategy) },
                             onClick = {
-                                viewModel.setStrategy(strategy)
+                                viewModel.setStrategyType(strategy)
                                 strategyExpanded = false
                             }
                         )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = uiState.startDate,
-                    onValueChange = { viewModel.setDateRange(it, uiState.endDate) },
-                    label = { Text("开始日期") },
-                    placeholder = { Text("2024-01-01") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = uiState.endDate,
-                    onValueChange = { viewModel.setDateRange(uiState.startDate, it) },
-                    label = { Text("结束日期") },
-                    placeholder = { Text("2024-12-31") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = if (uiState.initialCapital == 0.0) "" else uiState.initialCapital.toBigDecimal().toPlainString(),
-                onValueChange = { text ->
-                    text.toDoubleOrNull()?.let { viewModel.setInitialCapital(it) }
-                },
-                label = { Text("初始资金") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
 
             Spacer(modifier = Modifier.height(12.dp))
 

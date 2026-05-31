@@ -1,14 +1,19 @@
 package com.tangtang.stockadvisor.data.repository
 
+import com.tangtang.stockadvisor.data.api.BacktestRequest
+import com.tangtang.stockadvisor.data.api.DownloadRequest
+import com.tangtang.stockadvisor.data.api.OptimizeRequest
+import com.tangtang.stockadvisor.data.api.PredictRequest
+import com.tangtang.stockadvisor.data.api.RealtimePredictRequest
+import com.tangtang.stockadvisor.data.api.SelectStockRequest
 import com.tangtang.stockadvisor.data.api.StockApiService
-import com.tangtang.stockadvisor.data.model.ApiResponse
+import com.tangtang.stockadvisor.data.api.UpdateCapitalRequest
 import com.tangtang.stockadvisor.data.model.BacktestResult
 import com.tangtang.stockadvisor.data.model.OnlinePredictionResult
 import com.tangtang.stockadvisor.data.model.PortfolioItem
 import com.tangtang.stockadvisor.data.model.PortfolioSummary
 import com.tangtang.stockadvisor.data.model.PredictionResult
 import com.tangtang.stockadvisor.data.model.StockInfo
-import com.tangtang.stockadvisor.data.model.StockPrice
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -21,40 +26,9 @@ class StockRepository @Inject constructor(
 
     // ==================== Stock Data ====================
 
-    suspend fun getStockInfo(code: String): Result<StockInfo> {
-        return try {
-            val response = apiService.getStockInfo(code)
-            if (response.code == 200 && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(Exception(response.message))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun getStockPrices(
-        code: String,
-        startDate: String? = null,
-        endDate: String? = null,
-        period: String = "daily"
-    ): Result<List<StockPrice>> {
-        return try {
-            val response = apiService.getStockPrices(code, startDate, endDate, period)
-            if (response.code == 200 && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(Exception(response.message))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    fun searchStocks(keyword: String): Flow<Result<List<StockInfo>>> = flow {
+    fun getStockList(): Flow<Result<List<StockInfo>>> = flow {
         try {
-            val response = apiService.searchStocks(keyword)
+            val response = apiService.getStockList()
             if (response.code == 200 && response.data != null) {
                 emit(Result.success(response.data))
             } else {
@@ -65,24 +39,36 @@ class StockRepository @Inject constructor(
         }
     }
 
-    fun getMarketOverview(): Flow<Result<List<StockInfo>>> = flow {
-        try {
-            val response = apiService.getMarketOverview()
+    suspend fun selectStock(
+        symbol: String,
+        name: String = "",
+        indexSymbol: String = "",
+        indexName: String = ""
+    ): Result<StockInfo> {
+        return try {
+            val response = apiService.selectStock(
+                SelectStockRequest(
+                    symbol = symbol,
+                    name = name,
+                    index_symbol = indexSymbol,
+                    index_name = indexName
+                )
+            )
             if (response.code == 200 && response.data != null) {
-                emit(Result.success(response.data))
+                Result.success(response.data)
             } else {
-                emit(Result.failure(Exception(response.message)))
+                Result.failure(Exception(response.message))
             }
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            Result.failure(e)
         }
     }
 
     // ==================== Prediction ====================
 
-    fun getPrediction(code: String): Flow<Result<PredictionResult>> = flow {
+    fun getDailyPrediction(symbol: String): Flow<Result<PredictionResult>> = flow {
         try {
-            val response = apiService.getPrediction(code)
+            val response = apiService.getDailyPrediction(PredictRequest(symbol = symbol))
             if (response.code == 200 && response.data != null) {
                 emit(Result.success(response.data))
             } else {
@@ -93,9 +79,11 @@ class StockRepository @Inject constructor(
         }
     }
 
-    fun getOnlinePrediction(code: String): Flow<Result<OnlinePredictionResult>> = flow {
+    fun getRealtimePrediction(symbol: String, prevClose: Double? = null): Flow<Result<OnlinePredictionResult>> = flow {
         try {
-            val response = apiService.getOnlinePrediction(code)
+            val response = apiService.getRealtimePrediction(
+                RealtimePredictRequest(symbol = symbol, prev_close = prevClose)
+            )
             if (response.code == 200 && response.data != null) {
                 emit(Result.success(response.data))
             } else {
@@ -109,19 +97,15 @@ class StockRepository @Inject constructor(
     // ==================== Backtest ====================
 
     fun runBacktest(
-        code: String,
-        startDate: String,
-        endDate: String,
-        initialCapital: Double = 100000.0,
-        strategy: String = "default"
+        symbol: String,
+        strategyType: String,
+        params: Map<String, Any>? = null
     ): Flow<Result<BacktestResult>> = flow {
         try {
-            val request = com.tangtang.stockadvisor.data.api.BacktestRequest(
-                code = code,
-                start_date = startDate,
-                end_date = endDate,
-                initial_capital = initialCapital,
-                strategy = strategy
+            val request = BacktestRequest(
+                symbol = symbol,
+                strategy_type = strategyType,
+                params = params
             )
             val response = apiService.runBacktest(request)
             if (response.code == 200 && response.data != null) {
@@ -136,9 +120,9 @@ class StockRepository @Inject constructor(
 
     // ==================== Portfolio ====================
 
-    fun getPortfolio(): Flow<Result<PortfolioSummary>> = flow {
+    fun getHoldings(): Flow<Result<List<PortfolioItem>>> = flow {
         try {
-            val response = apiService.getPortfolio()
+            val response = apiService.getHoldings()
             if (response.code == 200 && response.data != null) {
                 emit(Result.success(response.data))
             } else {
@@ -149,9 +133,30 @@ class StockRepository @Inject constructor(
         }
     }
 
-    suspend fun addToPortfolio(item: PortfolioItem): Result<PortfolioSummary> {
+    fun getCapital(): Flow<Result<PortfolioSummary>> = flow {
+        try {
+            val response = apiService.getCapital()
+            if (response.code == 200 && response.data != null) {
+                emit(Result.success(response.data))
+            } else {
+                emit(Result.failure(Exception(response.message)))
+            }
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    suspend fun updateCapital(
+        availableCash: Double? = null,
+        totalCapital: Double? = null
+    ): Result<PortfolioSummary> {
         return try {
-            val response = apiService.addToPortfolio(item)
+            val response = apiService.updateCapital(
+                UpdateCapitalRequest(
+                    available_cash = availableCash,
+                    total_capital = totalCapital
+                )
+            )
             if (response.code == 200 && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -162,37 +167,50 @@ class StockRepository @Inject constructor(
         }
     }
 
-    suspend fun updatePortfolioItem(item: PortfolioItem): Result<PortfolioSummary> {
-        return try {
-            val response = apiService.updatePortfolioItem(item)
+    // ==================== Strategy ====================
+
+    fun getStrategyList(): Flow<Result<List<com.tangtang.stockadvisor.data.api.StrategyInfo>>> = flow {
+        try {
+            val response = apiService.getStrategyList()
             if (response.code == 200 && response.data != null) {
-                Result.success(response.data)
+                emit(Result.success(response.data))
             } else {
-                Result.failure(Exception(response.message))
+                emit(Result.failure(Exception(response.message)))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            emit(Result.failure(e))
         }
     }
 
-    suspend fun removeFromPortfolio(code: String): Result<PortfolioSummary> {
-        return try {
-            val response = apiService.removeFromPortfolio(code)
+    fun optimizeStrategy(
+        symbol: String,
+        strategyType: String
+    ): Flow<Result<Map<String, Any>>> = flow {
+        try {
+            val response = apiService.optimizeStrategy(
+                OptimizeRequest(symbol = symbol, strategy_type = strategyType)
+            )
             if (response.code == 200 && response.data != null) {
-                Result.success(response.data)
+                emit(Result.success(response.data))
             } else {
-                Result.failure(Exception(response.message))
+                emit(Result.failure(Exception(response.message)))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            emit(Result.failure(e))
         }
     }
 
-    // ==================== Settings ====================
+    // ==================== Tools ====================
 
-    suspend fun validateToken(token: String): Result<Boolean> {
+    suspend fun downloadData(
+        symbol: String,
+        years: Int? = null,
+        source: String? = null
+    ): Result<Map<String, Any>> {
         return try {
-            val response = apiService.validateToken(token)
+            val response = apiService.downloadData(
+                DownloadRequest(symbol = symbol, years = years, source = source)
+            )
             if (response.code == 200 && response.data != null) {
                 Result.success(response.data)
             } else {

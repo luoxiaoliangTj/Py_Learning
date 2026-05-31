@@ -158,7 +158,7 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            TextButton(onClick = { viewModel.loadMarketOverview() }) {
+                            TextButton(onClick = { viewModel.loadStockList() }) {
                                 Text("加载市场数据")
                             }
                         }

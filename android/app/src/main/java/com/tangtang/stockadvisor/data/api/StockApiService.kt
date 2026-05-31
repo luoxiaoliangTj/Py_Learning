@@ -7,50 +7,33 @@ import com.tangtang.stockadvisor.data.model.PortfolioItem
 import com.tangtang.stockadvisor.data.model.PortfolioSummary
 import com.tangtang.stockadvisor.data.model.PredictionResult
 import com.tangtang.stockadvisor.data.model.StockInfo
-import com.tangtang.stockadvisor.data.model.StockPrice
 import retrofit2.http.Body
-import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface StockApiService {
 
     // ==================== Stock Data ====================
 
-    @GET("api/stock/{code}")
-    suspend fun getStockInfo(
-        @Path("code") code: String
+    @GET("api/stock/list")
+    suspend fun getStockList(): ApiResponse<List<StockInfo>>
+
+    @POST("api/stock/select")
+    suspend fun selectStock(
+        @Body request: SelectStockRequest
     ): ApiResponse<StockInfo>
-
-    @GET("api/stock/{code}/prices")
-    suspend fun getStockPrices(
-        @Path("code") code: String,
-        @Query("start_date") startDate: String? = null,
-        @Query("end_date") endDate: String? = null,
-        @Query("period") period: String = "daily"
-    ): ApiResponse<List<StockPrice>>
-
-    @GET("api/stocks/search")
-    suspend fun searchStocks(
-        @Query("keyword") keyword: String
-    ): ApiResponse<List<StockInfo>>
-
-    @GET("api/stocks/market")
-    suspend fun getMarketOverview(): ApiResponse<List<StockInfo>>
 
     // ==================== Prediction ====================
 
-    @GET("api/predict/{code}")
-    suspend fun getPrediction(
-        @Path("code") code: String
+    @POST("api/predict/daily")
+    suspend fun getDailyPrediction(
+        @Body request: PredictRequest
     ): ApiResponse<PredictionResult>
 
-    @GET("api/predict/{code}/online")
-    suspend fun getOnlinePrediction(
-        @Path("code") code: String
+    @POST("api/predict/realtime")
+    suspend fun getRealtimePrediction(
+        @Body request: RealtimePredictRequest
     ): ApiResponse<OnlinePredictionResult>
 
     // ==================== Backtest ====================
@@ -62,36 +45,76 @@ interface StockApiService {
 
     // ==================== Portfolio ====================
 
-    @GET("api/portfolio")
-    suspend fun getPortfolio(): ApiResponse<PortfolioSummary>
+    @GET("api/portfolio/holdings")
+    suspend fun getHoldings(): ApiResponse<List<PortfolioItem>>
 
-    @POST("api/portfolio/add")
-    suspend fun addToPortfolio(
-        @Body item: PortfolioItem
+    @GET("api/portfolio/capital")
+    suspend fun getCapital(): ApiResponse<PortfolioSummary>
+
+    @POST("api/portfolio/capital")
+    suspend fun updateCapital(
+        @Body request: UpdateCapitalRequest
     ): ApiResponse<PortfolioSummary>
 
-    @PUT("api/portfolio/update")
-    suspend fun updatePortfolioItem(
-        @Body item: PortfolioItem
-    ): ApiResponse<PortfolioSummary>
+    // ==================== Strategy ====================
 
-    @DELETE("api/portfolio/{code}")
-    suspend fun removeFromPortfolio(
-        @Path("code") code: String
-    ): ApiResponse<PortfolioSummary>
+    @GET("api/strategy/list")
+    suspend fun getStrategyList(): ApiResponse<List<StrategyInfo>>
 
-    // ==================== Settings ====================
+    @POST("api/strategy/optimize")
+    suspend fun optimizeStrategy(
+        @Body request: OptimizeRequest
+    ): ApiResponse<Map<String, Any>>
 
-    @GET("api/settings/token")
-    suspend fun validateToken(
-        @Query("token") token: String
-    ): ApiResponse<Boolean>
+    // ==================== Tools ====================
+
+    @POST("api/tools/download")
+    suspend fun downloadData(
+        @Body request: DownloadRequest
+    ): ApiResponse<Map<String, Any>>
 }
 
+// ==================== Request Data Classes ====================
+
+data class SelectStockRequest(
+    val symbol: String,
+    val name: String = "",
+    val index_symbol: String = "",
+    val index_name: String = ""
+)
+
+data class PredictRequest(
+    val symbol: String
+)
+
+data class RealtimePredictRequest(
+    val symbol: String,
+    val prev_close: Double? = null
+)
+
 data class BacktestRequest(
-    val code: String,
-    val start_date: String,
-    val end_date: String,
-    val initial_capital: Double = 100000.0,
-    val strategy: String = "default"
+    val symbol: String,
+    val strategy_type: String,
+    val params: Map<String, Any>? = null
+)
+
+data class UpdateCapitalRequest(
+    val available_cash: Double? = null,
+    val total_capital: Double? = null
+)
+
+data class StrategyInfo(
+    val name: String = "",
+    val description: String = ""
+)
+
+data class OptimizeRequest(
+    val symbol: String,
+    val strategy_type: String
+)
+
+data class DownloadRequest(
+    val symbol: String,
+    val years: Int? = null,
+    val source: String? = null
 )

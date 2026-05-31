@@ -14,21 +14,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -82,12 +76,7 @@ fun PortfolioScreen(
                 )
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.showAddDialog() }) {
-                Icon(Icons.Filled.Add, contentDescription = "添加持仓")
-            }
-        }
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         when {
             uiState.isLoading -> {
@@ -98,7 +87,7 @@ fun PortfolioScreen(
                     CircularProgressIndicator()
                 }
             }
-            uiState.summary != null -> {
+            else -> {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -107,7 +96,9 @@ fun PortfolioScreen(
                 ) {
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
-                        PortfolioSummaryCard(uiState.summary!!)
+                        uiState.capital?.let { capital ->
+                            PortfolioSummaryCard(capital)
+                        }
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
@@ -120,27 +111,23 @@ fun PortfolioScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    if (uiState.summary!!.items.isEmpty()) {
+                    if (uiState.holdings.isEmpty()) {
                         item {
                             Box(
                                 modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("暂无持仓", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedButton(onClick = { viewModel.showAddDialog() }) {
-                                        Text("添加第一只股票")
-                                    }
-                                }
+                                Text(
+                                    "暂无持仓",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     } else {
-                        items(uiState.summary!!.items) { item ->
+                        items(uiState.holdings) { item ->
                             PortfolioItemCard(
                                 item = item,
-                                onClick = { onNavigateToPredict(item.code) },
-                                onDelete = { viewModel.removeStock(item.code) }
+                                onClick = { onNavigateToPredict(item.code) }
                             )
                         }
                     }
@@ -150,34 +137,7 @@ fun PortfolioScreen(
                     }
                 }
             }
-            uiState.error != null -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("加载失败", color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TextButton(onClick = { viewModel.loadPortfolio() }) {
-                            Text("重试")
-                        }
-                    }
-                }
-            }
         }
-    }
-
-    // Add stock dialog
-    if (uiState.showAddDialog) {
-        AddStockDialog(
-            uiState = uiState,
-            onCodeChange = { viewModel.updateNewStockCode(it) },
-            onNameChange = { viewModel.updateNewStockName(it) },
-            onSharesChange = { viewModel.updateNewShares(it) },
-            onAvgCostChange = { viewModel.updateNewAvgCost(it) },
-            onConfirm = { viewModel.addStock() },
-            onDismiss = { viewModel.hideAddDialog() }
-        )
     }
 }
 
@@ -241,8 +201,7 @@ fun PortfolioSummaryCard(summary: PortfolioSummary) {
 @Composable
 fun PortfolioItemCard(
     item: PortfolioItem,
-    onClick: () -> Unit,
-    onDelete: () -> Unit
+    onClick: () -> Unit
 ) {
     val pnlColor = if (item.profitLoss >= 0) Color(0xFFE53935) else Color(0xFF43A047)
 
@@ -302,80 +261,6 @@ fun PortfolioItemCard(
                     color = pnlColor
                 )
             }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = "删除",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
         }
     }
-}
-
-@Composable
-fun AddStockDialog(
-    uiState: com.tangtang.stockadvisor.viewmodel.PortfolioUiState,
-    onCodeChange: (String) -> Unit,
-    onNameChange: (String) -> Unit,
-    onSharesChange: (String) -> Unit,
-    onAvgCostChange: (String) -> Unit,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("添加持仓") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = uiState.newStockCode,
-                    onValueChange = onCodeChange,
-                    label = { Text("股票代码") },
-                    placeholder = { Text("600519") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = uiState.newStockName,
-                    onValueChange = onNameChange,
-                    label = { Text("股票名称") },
-                    placeholder = { Text("贵州茅台") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = uiState.newShares,
-                        onValueChange = onSharesChange,
-                        label = { Text("持仓数量") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = uiState.newAvgCost,
-                        onValueChange = onAvgCostChange,
-                        label = { Text("成本价") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = onConfirm) {
-                Text("添加")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("取消")
-            }
-        }
-    )
 }

@@ -3,7 +3,6 @@ package com.tangtang.stockadvisor.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tangtang.stockadvisor.data.model.PredictionResult
-import com.tangtang.stockadvisor.data.model.StockPrice
 import com.tangtang.stockadvisor.data.repository.StockRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +18,6 @@ data class PredictUiState(
     val stockName: String = "",
     val currentPrice: Double = 0.0,
     val prediction: PredictionResult? = null,
-    val priceHistory: List<StockPrice> = emptyList(),
     val error: String? = null
 )
 
@@ -34,9 +32,9 @@ class PredictViewModel @Inject constructor(
     fun loadPrediction(code: String) {
         _uiState.value = _uiState.value.copy(stockCode = code, isLoading = true, error = null)
 
-        // Load prediction
+        // Load daily prediction
         viewModelScope.launch {
-            repository.getPrediction(code).collect { result ->
+            repository.getDailyPrediction(code).collect { result ->
                 result.onSuccess { prediction ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -52,15 +50,6 @@ class PredictViewModel @Inject constructor(
                 }
             }
         }
-
-        // Load price history
-        viewModelScope.launch {
-            repository.getStockPrices(code, period = "daily").collect { result ->
-                result.onSuccess { prices ->
-                    _uiState.value = _uiState.value.copy(priceHistory = prices)
-                }
-            }
-        }
     }
 
     fun refreshPrediction() {
@@ -69,7 +58,7 @@ class PredictViewModel @Inject constructor(
 
         _uiState.value = _uiState.value.copy(isRefreshing = true)
         viewModelScope.launch {
-            repository.getPrediction(code).collect { result ->
+            repository.getDailyPrediction(code).collect { result ->
                 result.onSuccess { prediction ->
                     _uiState.value = _uiState.value.copy(
                         isRefreshing = false,

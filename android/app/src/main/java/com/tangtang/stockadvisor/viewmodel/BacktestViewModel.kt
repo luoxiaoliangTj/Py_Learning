@@ -15,10 +15,7 @@ data class BacktestUiState(
     val isLoading: Boolean = false,
     val stockCode: String = "",
     val stockName: String = "",
-    val startDate: String = "",
-    val endDate: String = "",
-    val initialCapital: Double = 100000.0,
-    val strategy: String = "default",
+    val strategyType: String = "default",
     val result: BacktestResult? = null,
     val error: String? = null,
     val availableStrategies: List<String> = listOf(
@@ -38,16 +35,8 @@ class BacktestViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(stockCode = code, stockName = name)
     }
 
-    fun setDateRange(startDate: String, endDate: String) {
-        _uiState.value = _uiState.value.copy(startDate = startDate, endDate = endDate)
-    }
-
-    fun setInitialCapital(capital: Double) {
-        _uiState.value = _uiState.value.copy(initialCapital = capital)
-    }
-
-    fun setStrategy(strategy: String) {
-        _uiState.value = _uiState.value.copy(strategy = strategy)
+    fun setStrategyType(strategyType: String) {
+        _uiState.value = _uiState.value.copy(strategyType = strategyType)
     }
 
     fun runBacktest() {
@@ -56,19 +45,12 @@ class BacktestViewModel @Inject constructor(
             _uiState.value = state.copy(error = "请输入股票代码")
             return
         }
-        if (state.startDate.isBlank() || state.endDate.isBlank()) {
-            _uiState.value = state.copy(error = "请选择回测时间范围")
-            return
-        }
 
         _uiState.value = state.copy(isLoading = true, error = null)
         viewModelScope.launch {
             repository.runBacktest(
-                code = state.stockCode,
-                startDate = state.startDate,
-                endDate = state.endDate,
-                initialCapital = state.initialCapital,
-                strategy = state.strategy
+                symbol = state.stockCode,
+                strategyType = state.strategyType
             ).collect { result ->
                 result.onSuccess { backtestResult ->
                     _uiState.value = _uiState.value.copy(

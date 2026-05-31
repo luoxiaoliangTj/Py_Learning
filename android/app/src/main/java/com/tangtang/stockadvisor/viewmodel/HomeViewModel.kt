@@ -29,13 +29,13 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        loadMarketOverview()
+        loadStockList()
     }
 
-    fun loadMarketOverview() {
+    fun loadStockList() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            repository.getMarketOverview().collect { result ->
+            repository.getStockList().collect { result ->
                 result.onSuccess { stocks ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -44,7 +44,7 @@ class HomeViewModel @Inject constructor(
                 }.onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = e.message ?: "加载市场数据失败"
+                        error = e.message ?: "加载股票列表失败"
                     )
                 }
             }
@@ -58,9 +58,14 @@ class HomeViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            repository.searchStocks(query).collect { result ->
+            repository.getStockList().collect { result ->
                 result.onSuccess { stocks ->
-                    _uiState.value = _uiState.value.copy(searchResults = stocks)
+                    // Filter locally since backend doesn't support search
+                    val filtered = stocks.filter {
+                        it.code.contains(query, ignoreCase = true) ||
+                        it.name.contains(query, ignoreCase = true)
+                    }
+                    _uiState.value = _uiState.value.copy(searchResults = filtered)
                 }.onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         error = e.message ?: "搜索失败"
