@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Portfolio
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TrendingUp
@@ -57,7 +57,7 @@ fun MainScreen() {
 
     val bottomNavItems = listOf(
         BottomNavItem(NavRoutes.Home.route, "首页", Icons.Filled.Home),
-        BottomNavItem(NavRoutes.Portfolio.route, "持仓", Icons.Filled.Portfolio),
+        BottomNavItem(NavRoutes.Portfolio.route, "持仓", Icons.Filled.AccountBalance),
         BottomNavItem(NavRoutes.Settings.route, "设置", Icons.Filled.Settings)
     )
 

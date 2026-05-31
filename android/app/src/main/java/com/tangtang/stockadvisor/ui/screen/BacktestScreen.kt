@@ -193,6 +193,7 @@ fun BacktestScreen(
  * 策略选择器
  * 支持通道策略和趋势策略切换
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StrategySelector(
     selectedStrategy: String,
