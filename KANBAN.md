@@ -73,19 +73,84 @@
 
 ---
 
+## 🔄 Phase 5: 部署 + 联调 + 发布 — 进行中
+
+### 负责人
+- 总控：Hermes (default profile)
+- Worker：cell_manager profile
+
+### 目标
+将 StockAdvisor 从"代码完成"推进到"可安装的 APK + 可运行的后端服务"
+
+### 任务清单
+
+#### P5-T1: 触发 GitHub Actions 验证 APK 编译
+- **状态**: 🔄 进行中
+- **说明**: 已有 4 次 CI 触发记录（commits: e038d04, bc37994, a8f592d, fd8cc5f），需要确认最新一次是否成功
+- **验收**: GitHub Actions 全部 4 个 Job 通过（lint → unit-tests → build-debug → build-release）
+- **产出**: Debug APK 上传到 GitHub Artifacts
+
+#### P5-T2: 后端部署到云服务器
+- **状态**: ⏳ 待开始
+- **候选平台**: Render (免费) / Railway (免费)
+- **说明**: 将 backend/ 部署为公网可访问的 FastAPI 服务
+- **关键配置**:
+  - CORS 需允许 Android 端访问
+  - 端口 8000
+  - 环境变量: TUSHARE_TOKEN (从 token/tushare_token.txt 获取)
+- **验收**: `curl https://<deployed-url>/health` 返回 `{"code":200,"message":"healthy"}`
+
+#### P5-T3: Android 端联调测试
+- **状态**: ⏳ 待开始
+- **说明**: Android 端连接部署后的后端 API，验证端到端功能
+- **测试项**:
+  - 首页股票列表加载
+  - 日线预测 API 调用
+  - 回测 API 调用
+  - 持仓管理 API 调用
+- **注意**: 默认连接 `http://10.0.2.2:8000`（模拟器），真机/公网需修改后端地址
+
+#### P5-T4: 生成签名 APK
+- **状态**: ⏳ 待开始
+- **说明**: 生成可在 Android 设备上安装的签名 APK
+- **步骤**:
+  1. 生成 keystore: `keytool -genkey -v -keystore stockadvisor.keystore -alias stockadvisor -keyalg RSA -keysize 2048 -validity 10000`
+  2. 配置 android/app/build.gradle.kts 签名
+  3. 本地或 CI 生成签名 APK
+- **产出**: `app-release-signed.apk`
+
+### 进展日志
+| 时间 | 事件 | 备注 |
+|------|------|------|
+| 2026-05-31 | Phase 1-4 全部完成 | commit 16db912 |
+| 2026-06-01 00:15 | Phase 5 启动 | Hermes 总控，读取全部文档 |
+
+---
+
 ## 📊 总进度
 - Phase 1 (后端): ✅ 100%
 - Phase 2 (UI): ✅ 100%
 - Phase 3 (CI/CD): ✅ 100%
 - Phase 4 (审查): ✅ 100%
-
-## 🔜 后续待办（Phase 5）
-- [ ] 触发 GitHub Actions 验证 APK 编译
-- [ ] 后端部署到云服务器（Render/Railway）
-- [ ] Android 端联调测试
-- [ ] 生成签名 APK
+- Phase 5 (部署+发布): 🔄 刚开始
 
 ## 📝 关键信息
 - GitHub: https://github.com/luoxiaoliangTj/Py_Learning
-- 最新 commit: 16db912
-- 37 files changed, 3974 insertions(+), 1302 deletions(-)
+- 最新 commit: fd8cc5f (Gradle wrapper fix)
+- 本地路径: ~/Py_Learning
+- 后端端口: 8000
+- Android 架构: Kotlin + Jetpack Compose + Hilt + Retrofit + Room
+- 后端架构: FastAPI + Pandas + NumPy + Pydantic
+
+## ⚠️ 已知问题（来自 CODE_REVIEW.md）
+1. predictor.py 预测逻辑不完整（缺少完整预测区间计算）
+2. strategy_engine.py 通道策略不完整（缺少 ATR 通道突破买卖条件）
+3. performance_analyzer.py 需验证绩效分析完整性
+4. 实时行情数据缺失（current_price 等字段返回 0）
+5. 胜率计算简化（固定返回 0.5）
+6. 预测策略信号为空（strategies 返回空数组）
+
+## 🔙 回滚方案
+- Git 可随时回滚到任意 commit
+- 最新稳定 commit: fd8cc5f
+- 如需回滚: `git reset --hard fd8cc5f`
