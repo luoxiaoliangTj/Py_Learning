@@ -66,3 +66,14 @@ def delete_position(symbol: str) -> bool:
             json.dump(positions, f, ensure_ascii=False, indent=2)
         return True
     return False
+
+
+def clear_all_positions() -> int:
+    """Clear all positions. Returns the number of positions removed."""
+    positions = get_all_positions()
+    count = len(positions)
+    if count > 0:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(POSITIONS_FILE, "w", encoding="utf-8") as f:
+            json.dump({}, f, ensure_ascii=False, indent=2)
+    return count
