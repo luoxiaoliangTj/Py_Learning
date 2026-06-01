@@ -165,3 +165,9 @@ data class MapResponse(
     @SerializedName("message") val message: String,
     @SerializedName("data") val data: com.google.gson.JsonElement?
 )
+
+data class ImportResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)

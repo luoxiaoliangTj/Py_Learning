@@ -133,4 +133,16 @@ class StockRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun importPortfolio(
+        holdingsJson: String,
+        capitalJson: String?
+    ): Result<Boolean> {
+        return try {
+            apiClient.importPortfolio(holdingsJson, capitalJson)
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -78,4 +78,27 @@ class PortfolioViewModel @Inject constructor(
             }
         }
     }
+
+    fun importPortfolio(holdingsJson: String, capitalJson: String?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val result = repository.importPortfolio(holdingsJson, capitalJson)
+                result.onSuccess {
+                    // 导入成功后重新加载
+                    loadPortfolio()
+                }.onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = e.message ?: "导入失败"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "导入失败"
+                )
+            }
+        }
+    }
 }

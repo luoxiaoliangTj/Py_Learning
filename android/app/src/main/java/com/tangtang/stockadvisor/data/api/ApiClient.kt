@@ -181,6 +181,19 @@ class ApiClient @Inject constructor() {
         }
         throw Exception(response.message)
     }
+
+    suspend fun importPortfolio(holdingsJson: String, capitalJson: String?): Boolean {
+        val body = mapOf(
+            "holdings" to gson.fromJson(holdingsJson, Any::class.java),
+            "capital" to if (capitalJson != null) gson.fromJson(capitalJson, Any::class.java) else null
+        )
+        val json = post("api/portfolio/import", body)
+        val response = parseResponse<ImportResponse>(json)
+        if (response.code == 200) {
+            return true
+        }
+        throw Exception(response.message)
+    }
 }
 
 // ==================== Request Data Classes ====================
