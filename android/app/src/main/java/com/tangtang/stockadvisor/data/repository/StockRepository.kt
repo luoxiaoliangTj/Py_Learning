@@ -16,6 +16,7 @@ import com.tangtang.stockadvisor.data.model.MapResponse
 import com.tangtang.stockadvisor.data.model.RealtimePredictionResponse
 import com.tangtang.stockadvisor.data.model.StockListResponse
 import com.tangtang.stockadvisor.data.model.StockSelectResponse
+import com.tangtang.stockadvisor.data.model.StrategyInfo
 import com.tangtang.stockadvisor.data.model.StrategyListResponse
 import com.tangtang.stockadvisor.data.model.BacktestResult
 import com.tangtang.stockadvisor.data.model.OnlinePredictionResult
@@ -178,7 +179,7 @@ class StockRepository @Inject constructor(
 
     // ==================== Strategy ====================
 
-    fun getStrategyList(): Flow<Result<List<com.tangtang.stockadvisor.data.api.StrategyInfo>>> = flow {
+    fun getStrategyList(): Flow<Result<List<StrategyInfo>>> = flow {
         try {
             val response = apiService.getStrategyList()
             if (response.code == 200 && response.data != null) {

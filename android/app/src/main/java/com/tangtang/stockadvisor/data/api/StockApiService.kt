@@ -8,6 +8,7 @@ import com.tangtang.stockadvisor.data.model.MapResponse
 import com.tangtang.stockadvisor.data.model.RealtimePredictionResponse
 import com.tangtang.stockadvisor.data.model.StockListResponse
 import com.tangtang.stockadvisor.data.model.StockSelectResponse
+import com.tangtang.stockadvisor.data.model.StrategyInfo
 import com.tangtang.stockadvisor.data.model.StrategyListResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -102,11 +103,6 @@ data class BacktestRequest(
 data class UpdateCapitalRequest(
     val available_cash: Double? = null,
     val total_capital: Double? = null
-)
-
-data class StrategyInfo(
-    val name: String = "",
-    val description: String = ""
 )
 
 data class OptimizeRequest(

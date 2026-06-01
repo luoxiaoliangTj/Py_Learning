@@ -151,6 +151,12 @@ data class StrategyListResponse(
     @SerializedName("data") val data: List<StrategyInfo>?
 )
 
+// StrategyInfo moved from StockApiService to model layer
+data class StrategyInfo(
+    @SerializedName("name") val name: String = "",
+    @SerializedName("description") val description: String = ""
+)
+
 data class MapResponse(
     @SerializedName("code") val code: Int,
     @SerializedName("message") val message: String,
