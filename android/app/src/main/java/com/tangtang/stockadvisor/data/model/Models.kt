@@ -41,7 +41,7 @@ data class PredictionResult(
 
 data class StrategySignal(
     @SerializedName("name") val name: String,
-    @SerializedName("signal") val signal: String, // BUY, SELL, HOLD
+    @SerializedName("signal") val signal: String,
     @SerializedName("weight") val weight: Double,
     @SerializedName("value") val value: Double
 )
@@ -70,7 +70,7 @@ data class EquityPoint(
 
 data class TradeRecord(
     @SerializedName("date") val date: String,
-    @SerializedName("type") val type: String, // BUY or SELL
+    @SerializedName("type") val type: String,
     @SerializedName("price") val price: Double,
     @SerializedName("shares") val shares: Int,
     @SerializedName("amount") val amount: Double,
@@ -96,71 +96,9 @@ data class PortfolioSummary(
     @SerializedName("items") val items: List<PortfolioItem>
 )
 
-data class ApiResponse<T>(
-    @SerializedName("code") val code: Int,
-    @SerializedName("message") val message: String,
-    @SerializedName("data") val data: T?
-)
-
-// Concrete response types to avoid Gson generic type erasure
-data class StockListResponse(
-    @SerializedName("code") val code: Int,
-    @SerializedName("message") val message: String,
-    @SerializedName("data") val data: List<StockInfo>?
-)
-
-data class StockSelectResponse(
-    @SerializedName("code") val code: Int,
-    @SerializedName("message") val message: String,
-    @SerializedName("data") val data: StockInfo?
-)
-
-data class DailyPredictionResponse(
-    @SerializedName("code") val code: Int,
-    @SerializedName("message") val message: String,
-    @SerializedName("data") val data: PredictionResult?
-)
-
-data class RealtimePredictionResponse(
-    @SerializedName("code") val code: Int,
-    @SerializedName("message") val message: String,
-    @SerializedName("data") val data: OnlinePredictionResult?
-)
-
-data class BacktestResponse(
-    @SerializedName("code") val code: Int,
-    @SerializedName("message") val message: String,
-    @SerializedName("data") val data: BacktestResult?
-)
-
-data class HoldingsResponse(
-    @SerializedName("code") val code: Int,
-    @SerializedName("message") val message: String,
-    @SerializedName("data") val data: List<PortfolioItem>?
-)
-
-data class CapitalResponse(
-    @SerializedName("code") val code: Int,
-    @SerializedName("message") val message: String,
-    @SerializedName("data") val data: PortfolioSummary?
-)
-
-data class StrategyListResponse(
-    @SerializedName("code") val code: Int,
-    @SerializedName("message") val message: String,
-    @SerializedName("data") val data: List<StrategyInfo>?
-)
-
-// StrategyInfo moved from StockApiService to model layer
 data class StrategyInfo(
     @SerializedName("name") val name: String = "",
     @SerializedName("description") val description: String = ""
-)
-
-data class MapResponse(
-    @SerializedName("code") val code: Int,
-    @SerializedName("message") val message: String,
-    @SerializedName("data") val data: Map<String, Any>?
 )
 
 data class OnlinePredictionResult(
@@ -171,4 +109,59 @@ data class OnlinePredictionResult(
     @SerializedName("confidence") val confidence: Double,
     @SerializedName("signals") val signals: List<StrategySignal> = emptyList(),
     @SerializedName("update_time") val updateTime: String
+)
+
+// Concrete response types using JsonElement to avoid Gson generic type erasure
+data class StockListResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+data class StockSelectResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+data class DailyPredictionResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+data class RealtimePredictionResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+data class BacktestResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+data class HoldingsResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+data class CapitalResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+data class StrategyListResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+data class MapResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
 )

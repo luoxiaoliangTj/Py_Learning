@@ -1,5 +1,7 @@
 package com.tangtang.stockadvisor.data.repository
 
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.tangtang.stockadvisor.data.api.BacktestRequest
 import com.tangtang.stockadvisor.data.api.DownloadRequest
 import com.tangtang.stockadvisor.data.api.OptimizeRequest
@@ -16,7 +18,6 @@ import com.tangtang.stockadvisor.data.model.MapResponse
 import com.tangtang.stockadvisor.data.model.RealtimePredictionResponse
 import com.tangtang.stockadvisor.data.model.StockListResponse
 import com.tangtang.stockadvisor.data.model.StockSelectResponse
-import com.tangtang.stockadvisor.data.model.StrategyInfo
 import com.tangtang.stockadvisor.data.model.StrategyListResponse
 import com.tangtang.stockadvisor.data.model.BacktestResult
 import com.tangtang.stockadvisor.data.model.OnlinePredictionResult
@@ -24,6 +25,7 @@ import com.tangtang.stockadvisor.data.model.PortfolioItem
 import com.tangtang.stockadvisor.data.model.PortfolioSummary
 import com.tangtang.stockadvisor.data.model.PredictionResult
 import com.tangtang.stockadvisor.data.model.StockInfo
+import com.tangtang.stockadvisor.data.model.StrategyInfo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -33,6 +35,7 @@ import javax.inject.Singleton
 class StockRepository @Inject constructor(
     private val apiService: StockApiService
 ) {
+    private val gson = Gson()
 
     // ==================== Stock Data ====================
 
@@ -40,7 +43,9 @@ class StockRepository @Inject constructor(
         try {
             val response = apiService.getStockList()
             if (response.code == 200 && response.data != null) {
-                emit(Result.success(response.data))
+                val type = object : TypeToken<List<StockInfo>>() {}.type
+                val stocks: List<StockInfo> = gson.fromJson(response.data, type)
+                emit(Result.success(stocks))
             } else {
                 emit(Result.failure(Exception(response.message)))
             }
@@ -65,7 +70,8 @@ class StockRepository @Inject constructor(
                 )
             )
             if (response.code == 200 && response.data != null) {
-                Result.success(response.data)
+                val stock: StockInfo = gson.fromJson(response.data, StockInfo::class.java)
+                Result.success(stock)
             } else {
                 Result.failure(Exception(response.message))
             }
@@ -80,7 +86,8 @@ class StockRepository @Inject constructor(
         try {
             val response = apiService.getDailyPrediction(PredictRequest(symbol = symbol))
             if (response.code == 200 && response.data != null) {
-                emit(Result.success(response.data))
+                val result: PredictionResult = gson.fromJson(response.data, PredictionResult::class.java)
+                emit(Result.success(result))
             } else {
                 emit(Result.failure(Exception(response.message)))
             }
@@ -95,7 +102,8 @@ class StockRepository @Inject constructor(
                 RealtimePredictRequest(symbol = symbol, prev_close = prevClose)
             )
             if (response.code == 200 && response.data != null) {
-                emit(Result.success(response.data))
+                val result: OnlinePredictionResult = gson.fromJson(response.data, OnlinePredictionResult::class.java)
+                emit(Result.success(result))
             } else {
                 emit(Result.failure(Exception(response.message)))
             }
@@ -119,7 +127,8 @@ class StockRepository @Inject constructor(
             )
             val response = apiService.runBacktest(request)
             if (response.code == 200 && response.data != null) {
-                emit(Result.success(response.data))
+                val result: BacktestResult = gson.fromJson(response.data, BacktestResult::class.java)
+                emit(Result.success(result))
             } else {
                 emit(Result.failure(Exception(response.message)))
             }
@@ -134,7 +143,9 @@ class StockRepository @Inject constructor(
         try {
             val response = apiService.getHoldings()
             if (response.code == 200 && response.data != null) {
-                emit(Result.success(response.data))
+                val type = object : TypeToken<List<PortfolioItem>>() {}.type
+                val items: List<PortfolioItem> = gson.fromJson(response.data, type)
+                emit(Result.success(items))
             } else {
                 emit(Result.failure(Exception(response.message)))
             }
@@ -147,7 +158,8 @@ class StockRepository @Inject constructor(
         try {
             val response = apiService.getCapital()
             if (response.code == 200 && response.data != null) {
-                emit(Result.success(response.data))
+                val result: PortfolioSummary = gson.fromJson(response.data, PortfolioSummary::class.java)
+                emit(Result.success(result))
             } else {
                 emit(Result.failure(Exception(response.message)))
             }
@@ -168,7 +180,8 @@ class StockRepository @Inject constructor(
                 )
             )
             if (response.code == 200 && response.data != null) {
-                Result.success(response.data)
+                val result: PortfolioSummary = gson.fromJson(response.data, PortfolioSummary::class.java)
+                Result.success(result)
             } else {
                 Result.failure(Exception(response.message))
             }
@@ -183,7 +196,9 @@ class StockRepository @Inject constructor(
         try {
             val response = apiService.getStrategyList()
             if (response.code == 200 && response.data != null) {
-                emit(Result.success(response.data))
+                val type = object : TypeToken<List<StrategyInfo>>() {}.type
+                val items: List<StrategyInfo> = gson.fromJson(response.data, type)
+                emit(Result.success(items))
             } else {
                 emit(Result.failure(Exception(response.message)))
             }
@@ -201,7 +216,9 @@ class StockRepository @Inject constructor(
                 OptimizeRequest(symbol = symbol, strategy_type = strategyType)
             )
             if (response.code == 200 && response.data != null) {
-                emit(Result.success(response.data))
+                val type = object : TypeToken<Map<String, Any>>() {}.type
+                val result: Map<String, Any> = gson.fromJson(response.data, type)
+                emit(Result.success(result))
             } else {
                 emit(Result.failure(Exception(response.message)))
             }
@@ -222,7 +239,9 @@ class StockRepository @Inject constructor(
                 DownloadRequest(symbol = symbol, years = years, source = source)
             )
             if (response.code == 200 && response.data != null) {
-                Result.success(response.data)
+                val type = object : TypeToken<Map<String, Any>>() {}.type
+                val result: Map<String, Any> = gson.fromJson(response.data, type)
+                Result.success(result)
             } else {
                 Result.failure(Exception(response.message))
             }
