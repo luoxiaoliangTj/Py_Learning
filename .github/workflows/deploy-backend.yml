@@ -1,0 +1,25 @@
+name: Deploy Backend to Render
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Trigger Render Deploy Hook
+        run: |
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            curl -s -o /dev/null -w "%{http_code}" "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+            echo "Render deploy triggered"
+          else
+            echo "RENDER_DEPLOY_HOOK_URL not set, skipping deployment"
+            echo "To enable: add RENDER_DEPLOY_HOOK_URL to GitHub Secrets"
+          fi

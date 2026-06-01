@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: stockadvisor-backend
+    runtime: docker
+    repo: https://github.com/luoxiaoliangTj/Py_Learning
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: TUSHARE_TOKEN
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.13.0
+    plan: free
+    autoDeploy: true
