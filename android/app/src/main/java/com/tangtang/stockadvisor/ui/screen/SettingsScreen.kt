@@ -42,16 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tangtang.stockadvisor.viewmodel.SettingsViewModel
-
-data class SettingsUiState(
-    val tushareToken: String = "",
-    val backendUrl: String = "http://10.0.2.2:8000",
-    val enableNotifications: Boolean = true,
-    val enableDarkMode: Boolean = false,
-    val refreshInterval: Int = 5,
-    val saved: Boolean = false,
-    val error: String? = null
-)
+import com.tangtang.stockadvisor.viewmodel.SettingsUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

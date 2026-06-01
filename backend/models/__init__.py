@@ -48,3 +48,23 @@ class PositionUpdateRequest(BaseModel):
     shares: int = Field(..., ge=0, description="持仓股数")
     cost_price: float = Field(..., description="成本价")
     stock_name: Optional[str] = Field(None, description="股票名称")
+
+
+class PortfolioImportItem(BaseModel):
+    """单条持仓数据（从 .md 文件解析后）"""
+    symbol: str = Field("", description="股票代码（6位数字）")
+    name: str = Field("", description="股票名称")
+    shares: int = Field(0, ge=0, description="持仓股数")
+    cost_price: float = Field(0.0, description="成本价")
+
+
+class PortfolioImportCapital(BaseModel):
+    """资金信息"""
+    available_cash: Optional[float] = Field(None, ge=0, description="可用资金")
+    total_capital: Optional[float] = Field(None, ge=0, description="总资金")
+
+
+class PortfolioImportRequest(BaseModel):
+    """持仓导入请求"""
+    holdings: list[PortfolioImportItem] = Field(default_factory=list, description="持仓列表")
+    capital: Optional[PortfolioImportCapital] = Field(None, description="资金信息（可选）")

@@ -1,153 +1,99 @@
-# 📋 StockAdvisor APK — Kanban 任务看板
+# StockAdvisor 项目看板
 
-## 项目目标
-将 NewProjectV2402 Python 策略引擎项目转换为 Android APK
-架构：原生 Kotlin + Jetpack Compose + FastAPI 后端
-
-## 质量标准
-- 代码必须可编译、可运行
-- 每个 Phase 完成后必须验证
-- 所有代码提交到 GitHub 仓库
-- 不修改原始 Python 项目代码
+> 更新时间：2026-06-01
+> 文档：[[StockAdvisor项目档案]]
 
 ---
 
-## ✅ Phase 1: 后端API验收与补全 (Worker 1) — 完成
+## 🔴 Blocked / 待解决
 
-### 已完成任务
-- [x] P1-T1: 验收现有 backend/ 代码
-- [x] P1-T2: 补全 COMPLETION.md
-- [x] P1-T3: 补全 requirements.txt
-- [x] P1-T4: 创建 main.py（FastAPI应用入口）
-- [x] P1-T5: 创建 Dockerfile
-- [x] P1-T6: 提交 backend/ 到 GitHub
+### B1: APK 安装后闪退
+- **现象**：编译通过，安装后点击图标闪退
+- **可能原因**：Compose BOM 版本兼容性 / Hilt 注入问题 / minSdk 不匹配
+- **下一步**：需要 adb logcat 获取崩溃日志
 
-### 状态
-- ✅ 完成，已提交 GitHub (commit: 16db912)
-
----
-
-## ✅ Phase 2: Android UI层 (Worker 2) — 完成
-
-### 已完成任务
-- [x] P2-T1: 创建 MainActivity.kt (Compose入口 + NavHost)
-- [x] P2-T2: 创建 Navigation 路由定义 (NavRoutes.kt)
-- [x] P2-T3: 创建 HomeScreen (首页 + 股票列表)
-- [x] P2-T4: 创建 PredictScreen (预测页 + 价格图表)
-- [x] P2-T5: 创建 BacktestScreen (回测页 + 绩效报告)
-- [x] P2-T6: 创建 PortfolioScreen (持仓管理页)
-- [x] P2-T7: 创建 SettingsScreen (设置页)
-- [x] P2-T8: 创建 StockSearchScreen (股票搜索页)
-- [x] P2-T9: 每个 Screen 绑定对应 ViewModel
-
-### 状态
-- ✅ 完成，已提交 GitHub
+### B2: 持仓加载架构错误
+- **问题**：当前设计让 App 直接从 API 读持仓，但持仓数据源是用户本地 `.md` 文件
+- **正确方案**：用户通过文件选择器导入 `.md` → App 解析 → 同步到后端
+- **影响**：PortfolioScreen、PortfolioViewModel、后端 API 均需修改
 
 ---
 
-## ✅ Phase 3: CI/CD + APK构建 (Worker 3) — 完成
+## 🔵 In Progress / 进行中
 
-### 已完成任务
-- [x] P3-T1: 创建 .github/workflows/android.yml
-- [x] P3-T2: 创建 .github/workflows/backend.yml
-- [x] P3-T3: 配置 4 个 Job (lint/unit-tests/build-debug/build-release)
-- [x] P3-T4: 提交到 GitHub
+### I1: 修复编译错误 ✅ 已完成
+- [x] HomeScreen 缺 onPortfolioClick/onSettingsClick
+- [x] SettingsScreen 缺 onBack
+- [x] StockSearchScreen 参数名错误
+- [x] ApiClient.kt response.body!! 语法
+- **Run ID**: 26751636044（待验证）
 
-### 状态
-- ✅ 完成，已提交 GitHub
-
----
-
-## ✅ Phase 4: 代码审查 + 修复 + 提交 — 完成
-
-### 已完成任务
-- [x] 审查后端 predictor.py — 逻辑完整
-- [x] 审查后端 strategy_engine.py — 逻辑完整
-- [x] 审查 Android UI 层 — 代码质量良好
-- [x] 审查 CI/CD — 配置完整
-- [x] 创建 backend/Dockerfile
-- [x] 提交 37 个文件到 GitHub
-
-### 状态
-- ✅ 完成
+### I2: 持仓导入功能设计
+- **负责人**：Hermes（PM/架构）
+- **子任务**：
+  - [ ] 后端添加 `/api/portfolio/import` 接口
+  - [ ] App 端 SAF 文件选择器
+  - [ ] App 端 `.md` 表格解析
+  - [ ] PortfolioScreen 添加导入按钮
+  - [ ] PortfolioViewModel 添加 import 方法
 
 ---
 
-## ✅ Phase 5: 部署 + 联调 + 发布 — 完成
+## ✅ Done / 已完成
 
-### 负责人
-- 总控：Hermes (default profile)
+### Phase 1: 后端 FastAPI ✅
+- 10 个 API 端点
+- Token 管理 API
+- 部署配置 render.yaml
 
-### 目标
-将 StockAdvisor 从"代码完成"推进到"可安装的 APK + 可运行的后端服务"
+### Phase 2: Android UI 基础架构 ✅
+- 6 个 Screen 页面
+- 5 个 ViewModel
+- Navigation + Hilt DI
+- OkHttp + Gson API 层
 
-### 任务清单
+### Phase 3: CI/CD ✅
+- GitHub Actions 编译 workflow
+- 签名 APK 构建 workflow
+- Keystore 配置
 
-#### P5-T1: CI/CD 验证 APK 编译
-- **状态**: ✅ 完成
-- **说明**: 修复 7 个 Android 编译问题（Gradle兼容、Kotlin编译、资源链接等）
-- **验收**: ✅ lint → unit-tests → build-debug → build-release 全部通过
-- **APK**: Debug APK 已上传到 GitHub Artifacts
-- **修复 commits**: ae2c036, 1166bba, 206c86e, 9bd41d8, 8b1a5cd, 9ccdd7c, 75cfd6c
+### Phase 4: 代码审查 ✅
+- 多轮代码审查
+- 泛型擦除问题排查
+- Retrofit → OkHttp 迁移
 
-#### P5-T2: 后端部署到云服务器
-- **状态**: ✅ 配置完成
-- **说明**: 创建 render.yaml 蓝图 + deploy workflow
-- **待用户操作**: 在 Render 上创建 Web Service，配置 TUSHARE_TOKEN 环境变量
-- **部署指南**: `DEPLOY_GUIDE.md`
-
-#### P5-T3: Android 端联调测试
-- **状态**: ⏳ 待后端部署后验证
-- **说明**: Settings 页面可配置后端 URL，默认 `http://10.0.2.2:8000`（模拟器）
-
-#### P5-T4: 生成签名 APK
-- **状态**: ✅ 工作流已创建
-- **说明**: `build-signed-apk.yml` 已配置
-- **待用户操作**: 设置 GitHub Secrets: KEYSTORE_PASSWORD, KEY_PASSWORD
-- **触发方式**: GitHub Actions 页面手动触发 "Build Signed Release APK"
-
-### 进展日志
-| 时间 | 事件 | 备注 |
-|------|------|------|
-| 2026-05-31 | Phase 1-4 全部完成 | commit 16db912 |
-| 2026-06-01 00:15 | Phase 5 启动 | Hermes 总控，读取全部文档 |
-| 2026-06-01 00:30 | CI/CD 修复开始 | Android CI 连续 5 次失败 |
-| 2026-06-01 01:00 | CI/CD 修复完成 | 修复 7 个问题，Android CI 通过 |
-| 2026-06-01 01:10 | 后端部署准备 | 创建 render.yaml + deploy workflow |
-| 2026-06-01 01:20 | 签名 APK 工作流 | 创建 build-signed-apk.yml + signing config |
-
-### 部署信息
-- **Render 蓝图**: `render.yaml`（一键部署）
-- **Tushare Token**: 存储在 `token/tushare_token.txt`（需手动配置到 Render 环境变量）
-- **后端端口**: 8000
-- **健康检查**: `GET /health`
+### Phase 5-R1: 编译错误修复 ✅
+- 7 个编译错误全部修复
+- 已推送 commit 15cc9d2
 
 ---
 
-## 📊 总进度
-- Phase 1 (后端): ✅ 100%
-- Phase 2 (UI): ✅ 100%
-- Phase 3 (CI/CD): ✅ 100%
-- Phase 4 (审查): ✅ 100%
-- Phase 5 (部署+发布): ✅ 100%（待用户操作：Render 部署 + 签名 APK）
+## 📊 进度总览
 
-## 📝 关键信息
-- GitHub: https://github.com/luoxiaoliangTj/Py_Learning
-- 最新 commit: 921d70b
-- 本地路径: ~/Py_Learning
-- 后端端口: 8000
-- Android 架构: Kotlin + Jetpack Compose + Hilt + Retrofit + Room
-- 后端架构: FastAPI + Pandas + NumPy + Pydantic
+| Phase | 状态 | 完成度 |
+|-------|------|--------|
+| Phase 1: 后端 | ✅ 完成 | 100% |
+| Phase 2: Android UI | ✅ 完成 | 100% |
+| Phase 3: CI/CD | ✅ 完成 | 100% |
+| Phase 4: 代码审查 | ✅ 完成 | 100% |
+| Phase 5: 编译修复 | ⏳ 进行中 | 80% |
+| Phase 6: 持仓导入重构 | 🔴 未开始 | 0% |
+| Phase 7: 联调测试 | 🔴 未开始 | 0% |
+| Phase 8: 签名 APK 发布 | 🔴 未开始 | 0% |
 
-## ⚠️ 已知问题（来自 CODE_REVIEW.md，暂未修复）
-1. predictor.py 预测逻辑不完整（缺少完整预测区间计算）
-2. strategy_engine.py 通道策略不完整（缺少 ATR 通道突破买卖条件）
-3. performance_analyzer.py 需验证绩效分析完整性
-4. 实时行情数据缺失（current_price 等字段返回 0）
-5. 胜率计算简化（固定返回 0.5）
-6. 预测策略信号为空（strategies 返回空数组）
+---
 
-## 🔙 回滚方案
-- Git 可随时回滚到任意 commit
-- 最新稳定 commit: 921d70b
-- 如需回滚: `git reset --hard <commit-hash>`
+## 📝 关键决策记录
+
+### D1: 持仓交互方式（2026-06-01）
+**原始方案（错误）**：App 硬编码路径读取 `.md` 文件
+**正确方案**：用户通过 SAF 文件选择器选取 `.md` 文件 → App 解析 → 同步后端
+**原因**：Android 无法直接访问桌面文件系统，需要用户交互选择
+
+### D2: API 响应处理（2026-06-01）
+**方案**：OkHttp 手动请求 + Gson 手动解析
+**原因**：Retrofit 泛型擦除导致 `ParameterizedType` 运行时错误
+
+### D3: 后端部署方式（2026-06-01）
+**方案**：Render Web Service（非 Blueprint）
+**原因**：Blueprint 需要银行卡认证

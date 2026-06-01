@@ -10,7 +10,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-import com.tangtang.stockadvisor.ui.screen.PortfolioItemUi
+data class PortfolioItemUi(
+    val code: String,
+    val name: String,
+    val shares: Int,
+    val avgCost: Double,
+    val currentPrice: Double,
+    val marketValue: Double,
+    val profitLoss: Double,
+    val profitLossPercent: Double
+)
 
 data class PortfolioUiState(
     val isLoading: Boolean = false,

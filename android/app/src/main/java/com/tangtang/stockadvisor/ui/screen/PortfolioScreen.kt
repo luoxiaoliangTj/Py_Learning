@@ -37,27 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tangtang.stockadvisor.viewmodel.PortfolioViewModel
-
-data class PortfolioUiState(
-    val isLoading: Boolean = false,
-    val totalMarketValue: Double = 0.0,
-    val totalCost: Double = 0.0,
-    val totalProfitLoss: Double = 0.0,
-    val totalProfitLossPercent: Double = 0.0,
-    val items: List<PortfolioItemUi> = emptyList(),
-    val error: String? = null
-)
-
-data class PortfolioItemUi(
-    val code: String,
-    val name: String,
-    val shares: Int,
-    val avgCost: Double,
-    val currentPrice: Double,
-    val marketValue: Double,
-    val profitLoss: Double,
-    val profitLossPercent: Double
-)
+import com.tangtang.stockadvisor.viewmodel.PortfolioUiState
+import com.tangtang.stockadvisor.viewmodel.PortfolioItemUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -3,8 +3,8 @@ API Routes - Portfolio endpoints (holdings & capital).
 投资组合接口，响应字段对齐 Android 端 PortfolioSummary / PortfolioItem。
 """
 from fastapi import APIRouter, HTTPException
-from models import CapitalUpdateRequest
-from core.position_manager import get_all_positions, get_position
+from models import CapitalUpdateRequest, PortfolioImportRequest
+from core.position_manager import get_all_positions, get_position, update_position, delete_position
 from core.capital_manager import get_capital_info, update_capital
 
 router = APIRouter(prefix="/api/portfolio", tags=["投资组合"])
@@ -90,3 +90,50 @@ async def update_capital_endpoint(request: CapitalUpdateRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"更新资金失败: {str(e)}")
+
+
+@router.post("/import", summary="导入持仓")
+async def import_portfolio(request: PortfolioImportRequest):
+    """
+    从 .md 文件解析后导入持仓数据。
+
+    接收解析后的持仓列表和资金信息，更新 real_positions.json 和 global_capital.json。
+    """
+    try:
+        # 清除旧持仓
+        positions = get_all_positions()
+        for symbol in list(positions.keys()):
+            delete_position(symbol)
+
+        # 写入新持仓
+        imported_count = 0
+        for item in request.holdings:
+            symbol = item.get("symbol", "")
+            if not symbol:
+                continue
+            update_position(
+                symbol=symbol,
+                shares=item.get("shares", 0),
+                cost_price=item.get("cost_price", 0.0),
+                stock_name=item.get("name", ""),
+            )
+            imported_count += 1
+
+        # 更新资金信息
+        capital_info = None
+        if request.capital:
+            capital_info = update_capital(
+                available_cash=request.capital.get("available_cash"),
+                total_capital=request.capital.get("total_capital"),
+            )
+
+        return {
+            "code": 200,
+            "message": f"成功导入 {imported_count} 条持仓",
+            "data": {
+                "imported_count": imported_count,
+                "capital": capital_info,
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"导入持仓失败: {str(e)}")
