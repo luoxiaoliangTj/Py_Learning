@@ -124,6 +124,15 @@
 |------|------|------|
 | 2026-05-31 | Phase 1-4 全部完成 | commit 16db912 |
 | 2026-06-01 00:15 | Phase 5 启动 | Hermes 总控，读取全部文档 |
+| 2026-06-01 00:30 | CI/CD 修复开始 | Android CI 连续 5 次失败 |
+| 2026-06-01 01:00 | CI/CD 修复完成 | 修复 7 个问题，Android CI 通过 |
+| 2026-06-01 01:10 | 后端部署准备 | 创建 render.yaml + deploy workflow |
+
+### 部署信息
+- **Render 蓝图**: `render.yaml`（一键部署）
+- **Tushare Token**: 存储在 `token/tushare_token.txt`（需手动配置到 Render 环境变量）
+- **后端端口**: 8000
+- **健康检查**: `GET /health` |
 
 ---
 
