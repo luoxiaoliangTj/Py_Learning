@@ -15,12 +15,11 @@ RESULT_DIR = PROJECT_DIR / "realtime_results"
 TOKEN_DIR = PROJECT_DIR / "token"
 
 # Ensure directories exist
-for d in [DATA_DIR, BACKTEST_DIR, LOG_DIR, RESULT_DIR]:
+for d in [DATA_DIR, BACKTEST_DIR, LOG_DIR, RESULT_DIR, TOKEN_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 
 def get_current_stock() -> dict:
-    """Read current stock selection from persistent config."""
     current_stock_file = DATA_DIR / "current_stock.json"
     if current_stock_file.exists():
         try:
@@ -32,7 +31,9 @@ def get_current_stock() -> dict:
 
 
 def get_tushare_token() -> str:
-    """Load tushare token from file."""
+    env_token = os.environ.get("TUSHARE_TOKEN", "")
+    if env_token:
+        return env_token
     token_file = TOKEN_DIR / "tushare_token.txt"
     if token_file.exists():
         try:
@@ -40,6 +41,16 @@ def get_tushare_token() -> str:
         except Exception:
             pass
     return ""
+
+
+def save_tushare_token(token: str) -> bool:
+    try:
+        TOKEN_DIR.mkdir(parents=True, exist_ok=True)
+        token_file = TOKEN_DIR / "tushare_token.txt"
+        token_file.write_text(token.strip(), encoding="utf-8")
+        return True
+    except Exception:
+        return False
 
 
 CURRENT_STOCK = get_current_stock()

@@ -14,6 +14,7 @@ from api.stock import router as stock_router
 from api.portfolio import router as portfolio_router
 from api.strategy import router as strategy_router
 from api.tools import router as tools_router
+from api.token import router as token_router
 
 # 创建 FastAPI 应用实例
 app = FastAPI(
@@ -38,6 +39,7 @@ app.include_router(stock_router)
 app.include_router(portfolio_router)
 app.include_router(strategy_router)
 app.include_router(tools_router)
+app.include_router(token_router)
 
 
 @app.get("/", summary="服务状态", tags=["根路径"])
