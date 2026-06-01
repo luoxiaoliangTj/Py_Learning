@@ -36,7 +36,10 @@ android {
                 storePassword = props.getProperty("storePassword")
                 keyAlias = props.getProperty("keyAlias")
                 keyPassword = props.getProperty("keyPassword")
-                storeType = props.getProperty("storeType", "PKCS12")
+                val storeTypeValue = props.getProperty("storeType")
+                if (storeTypeValue != null) {
+                    storeType = storeTypeValue
+                }
             }
         }
     }

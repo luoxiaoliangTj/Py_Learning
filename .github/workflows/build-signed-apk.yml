@@ -49,6 +49,7 @@ jobs:
           echo "keyAlias=stockadvisor" >> signing.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> signing.properties
           echo "storeType=PKCS12" >> signing.properties
+          cat signing.properties
           ./gradlew assembleRelease --no-daemon --stacktrace
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
