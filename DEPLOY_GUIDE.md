@@ -1,50 +1,71 @@
-# 🚀 后端部署指南（Render）
+# 🚀 StockAdvisor 部署指南
 
-## 一键部署步骤
+## 后端部署（Render）
 
-### 1. 注册 Render
-- 访问 https://render.com
-- 用 GitHub 账号登录
-
-### 2. 创建 Web Service
-1. 点击 **"New +"** → **"Web Service"**
-2. 选择 **"Deploy from Blueprint"**
+### 一键部署
+1. 访问 https://render.com 并用 GitHub 账号登录
+2. Dashboard → **New +** → **Web Service** → **Deploy from Blueprint**
 3. 连接 GitHub 仓库 `luoxiaoliangTj/Py_Learning`
-4. Render 会自动检测 `render.yaml`
+4. Render 自动检测 `render.yaml`，点击 **Create Web Service**
+5. 在 Environment 页面添加环境变量：
+   - `TUSHARE_TOKEN`: `b57f26d791c2a8e4fef5874895638b67655164e2fc0d634d2cf0b53e`
+6. 等待部署完成（约 2-3 分钟）
+7. 获得 URL：`https://stockadvisor-backend-xxxx.onrender.com`
 
-### 3. 配置环境变量
-在 Render Dashboard → Environment 添加：
-- `TUSHARE_TOKEN`: `b57f26d791c2a8e4fef5874895638b67655164e2fc0d634d2cf0b53e`
-
-### 4. 部署
-- 点击 **"Create Web Service"**
-- Render 会自动构建 Docker 镜像并部署
-- 获得类似 `https://stockadvisor-backend-xxxx.onrender.com` 的 URL
-
-### 5. 验证
+### 验证
 ```bash
 curl https://<your-url>/health
 # 应返回: {"code":200,"message":"healthy"}
 ```
 
-### 6. 更新 Android 端
-修改 `android/app/src/main/java/com/tangtang/stockadvisor/data/api/RetrofitClient.kt`（或类似文件）：
-```kotlin
-// 从
-private const val BASE_URL = "http://10.0.2.2:8000"
-// 改为
-private const val BASE_URL = "https://<your-render-url>"
+---
+
+## 签名 APK 生成
+
+### 1. 设置 GitHub Secrets
+在 GitHub 仓库 → Settings → Secrets and variables → Actions → New repository secret：
+- `KEYSTORE_PASSWORD`: 自定义密码（如 `stockadvisor123`）
+- `KEY_PASSWORD`: 自定义密码（如 `stockadvisor123`）
+
+### 2. 触发构建
+GitHub 仓库 → Actions → **Build Signed Release APK** → **Run workflow**
+
+### 3. 下载 APK
+构建完成后，在 Artifacts 中下载 `stockadvisor-release-signed`
+
+---
+
+## Android 端配置
+
+### 连接后端
+1. 安装 APK 到 Android 设备
+2. 打开 App → 设置页
+3. 修改后端 URL 为 Render 部署的 URL
+4. 保存后返回首页即可使用
+
+### 模拟器测试
+如果使用 Android 模拟器，默认 URL `http://10.0.2.2:8000` 即可（需本地运行后端）
+
+---
+
+## 项目结构
 ```
-
-## 备选方案：Railway
-1. 访问 https://railway.app
-2. 用 GitHub 登录
-3. 创建新项目 → 选择 GitHub 仓库
-4. 设置根目录为 `backend/`
-5. 添加环境变量 `TUSHARE_TOKEN`
-6. 部署
-
-## 注意事项
-- Render 免费层有 15 分钟无请求后休眠
-- 首次冷启动约 30-60 秒
-- 如需 24/7 运行，考虑升级到付费层
+Py_Learning/
+├── backend/          # FastAPI 后端
+│   ├── main.py       # 应用入口
+│   ├── core/         # 核心逻辑
+│   ├── api/          # API 路由
+│   └── models/       # 数据模型
+├── android/          # Android 客户端
+│   ├── app/          # 主应用模块
+│   └── gradle/       # Gradle 配置
+├── .github/          # GitHub Actions
+│   ├── workflows/
+│   │   ├── android.yml           # Android CI
+│   │   ├── backend.yml           # 后端 CI
+│   │   ├── deploy-backend.yml    # 后端部署
+│   │   └── build-signed-apk.yml  # 签名 APK
+├── token/            # API Token（不提交到 git）
+├── render.yaml       # Render 蓝图
+└── KANBAN.md         # 项目看板
+```
