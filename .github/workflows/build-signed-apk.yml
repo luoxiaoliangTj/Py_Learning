@@ -32,21 +32,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Restore Keystore from Secret
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > stockadvisor.keystore
+          ls -la stockadvisor.keystore
+
       - name: Grant execute permission for gradlew
         working-directory: ./android
         run: chmod +x gradlew
-
-      - name: Generate Keystore
-        run: |
-          keytool -genkey -v \
-            -keystore stockadvisor.keystore \
-            -alias stockadvisor \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass ${{ secrets.KEYSTORE_PASSWORD }} \
-            -keypass ${{ secrets.KEY_PASSWORD }} \
-            -dname "CN=StockAdvisor, OU=Dev, O=TangTang, L=Beijing, ST=Beijing, C=CN"
 
       - name: Build Signed Release APK
         working-directory: ./android
@@ -55,6 +48,7 @@ jobs:
           echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> signing.properties
           echo "keyAlias=stockadvisor" >> signing.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> signing.properties
+          echo "storeType=PKCS12" >> signing.properties
           ./gradlew assembleRelease --no-daemon --stacktrace
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
