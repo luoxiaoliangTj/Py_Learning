@@ -8,6 +8,15 @@ import com.tangtang.stockadvisor.data.api.RealtimePredictRequest
 import com.tangtang.stockadvisor.data.api.SelectStockRequest
 import com.tangtang.stockadvisor.data.api.StockApiService
 import com.tangtang.stockadvisor.data.api.UpdateCapitalRequest
+import com.tangtang.stockadvisor.data.model.BacktestResponse
+import com.tangtang.stockadvisor.data.model.CapitalResponse
+import com.tangtang.stockadvisor.data.model.DailyPredictionResponse
+import com.tangtang.stockadvisor.data.model.HoldingsResponse
+import com.tangtang.stockadvisor.data.model.MapResponse
+import com.tangtang.stockadvisor.data.model.RealtimePredictionResponse
+import com.tangtang.stockadvisor.data.model.StockListResponse
+import com.tangtang.stockadvisor.data.model.StockSelectResponse
+import com.tangtang.stockadvisor.data.model.StrategyListResponse
 import com.tangtang.stockadvisor.data.model.BacktestResult
 import com.tangtang.stockadvisor.data.model.OnlinePredictionResult
 import com.tangtang.stockadvisor.data.model.PortfolioItem

@@ -1,77 +1,78 @@
 package com.tangtang.stockadvisor.data.api
 
-import com.tangtang.stockadvisor.data.model.ApiResponse
-import com.tangtang.stockadvisor.data.model.BacktestResult
-import com.tangtang.stockadvisor.data.model.OnlinePredictionResult
-import com.tangtang.stockadvisor.data.model.PortfolioItem
-import com.tangtang.stockadvisor.data.model.PortfolioSummary
-import com.tangtang.stockadvisor.data.model.PredictionResult
-import com.tangtang.stockadvisor.data.model.StockInfo
+import com.tangtang.stockadvisor.data.model.BacktestResponse
+import com.tangtang.stockadvisor.data.model.CapitalResponse
+import com.tangtang.stockadvisor.data.model.DailyPredictionResponse
+import com.tangtang.stockadvisor.data.model.HoldingsResponse
+import com.tangtang.stockadvisor.data.model.MapResponse
+import com.tangtang.stockadvisor.data.model.RealtimePredictionResponse
+import com.tangtang.stockadvisor.data.model.StockListResponse
+import com.tangtang.stockadvisor.data.model.StockSelectResponse
+import com.tangtang.stockadvisor.data.model.StrategyListResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
-import retrofit2.http.Query
 
 interface StockApiService {
 
     // ==================== Stock Data ====================
 
     @GET("api/stock/list")
-    suspend fun getStockList(): ApiResponse<List<StockInfo>>
+    suspend fun getStockList(): StockListResponse
 
     @POST("api/stock/select")
     suspend fun selectStock(
         @Body request: SelectStockRequest
-    ): ApiResponse<StockInfo>
+    ): StockSelectResponse
 
     // ==================== Prediction ====================
 
     @POST("api/predict/daily")
     suspend fun getDailyPrediction(
         @Body request: PredictRequest
-    ): ApiResponse<PredictionResult>
+    ): DailyPredictionResponse
 
     @POST("api/predict/realtime")
     suspend fun getRealtimePrediction(
         @Body request: RealtimePredictRequest
-    ): ApiResponse<OnlinePredictionResult>
+    ): RealtimePredictionResponse
 
     // ==================== Backtest ====================
 
     @POST("api/backtest")
     suspend fun runBacktest(
         @Body request: BacktestRequest
-    ): ApiResponse<BacktestResult>
+    ): BacktestResponse
 
     // ==================== Portfolio ====================
 
     @GET("api/portfolio/holdings")
-    suspend fun getHoldings(): ApiResponse<List<PortfolioItem>>
+    suspend fun getHoldings(): HoldingsResponse
 
     @GET("api/portfolio/capital")
-    suspend fun getCapital(): ApiResponse<PortfolioSummary>
+    suspend fun getCapital(): CapitalResponse
 
     @POST("api/portfolio/capital")
     suspend fun updateCapital(
         @Body request: UpdateCapitalRequest
-    ): ApiResponse<PortfolioSummary>
+    ): CapitalResponse
 
     // ==================== Strategy ====================
 
     @GET("api/strategy/list")
-    suspend fun getStrategyList(): ApiResponse<List<StrategyInfo>>
+    suspend fun getStrategyList(): StrategyListResponse
 
     @POST("api/strategy/optimize")
     suspend fun optimizeStrategy(
         @Body request: OptimizeRequest
-    ): ApiResponse<Map<String, Any>>
+    ): MapResponse
 
     // ==================== Tools ====================
 
     @POST("api/tools/download")
     suspend fun downloadData(
         @Body request: DownloadRequest
-    ): ApiResponse<Map<String, Any>>
+    ): MapResponse
 }
 
 // ==================== Request Data Classes ====================

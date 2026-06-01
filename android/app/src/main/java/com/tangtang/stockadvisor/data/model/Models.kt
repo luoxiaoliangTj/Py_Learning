@@ -102,6 +102,61 @@ data class ApiResponse<T>(
     @SerializedName("data") val data: T?
 )
 
+// Concrete response types to avoid Gson generic type erasure
+data class StockListResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: List<StockInfo>?
+)
+
+data class StockSelectResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: StockInfo?
+)
+
+data class DailyPredictionResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: PredictionResult?
+)
+
+data class RealtimePredictionResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: OnlinePredictionResult?
+)
+
+data class BacktestResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: BacktestResult?
+)
+
+data class HoldingsResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: List<PortfolioItem>?
+)
+
+data class CapitalResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: PortfolioSummary?
+)
+
+data class StrategyListResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: List<StrategyInfo>?
+)
+
+data class MapResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: Map<String, Any>?
+)
+
 data class OnlinePredictionResult(
     @SerializedName("code") val code: String,
     @SerializedName("name") val name: String,
