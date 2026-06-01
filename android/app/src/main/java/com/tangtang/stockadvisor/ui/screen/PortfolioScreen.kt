@@ -35,9 +35,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,9 +46,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tangtang.stockadvisor.viewmodel.PortfolioViewModel
 import com.tangtang.stockadvisor.viewmodel.PortfolioUiState
 import com.tangtang.stockadvisor.viewmodel.PortfolioItemUi
-import com.google.gson.Gson
-import java.io.BufferedReader
-import java.io.InputStreamReader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,32 +56,14 @@ fun PortfolioScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val gson = remember { Gson() }
 
     // SAF 文件选择器
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            try {
-                // 读取文件内容
-                val inputStream = context.contentResolver.openInputStream(uri)
-                val reader = BufferedReader(InputStreamReader(inputStream))
-                val content = reader.readText()
-                reader.close()
-
-                // 解析 .md 文件
-                val (holdings, capital) = parseMdPortfolio(content)
-
-                // 转换为 JSON 并导入
-                val holdingsJson = gson.toJson(holdings)
-                val capitalJson = if (capital != null) gson.toJson(capital) else null
-
-                viewModel.importPortfolio(holdingsJson, capitalJson)
-            } catch (e: Exception) {
-                // 解析失败，显示错误
-                android.util.Log.e("PortfolioScreen", "导入失败", e)
-            }
+            // 直接传 URI 给 ViewModel，让协程处理文件读取、解析、导入
+            viewModel.importPortfolioFromUri(uri, context)
         }
     }
 
