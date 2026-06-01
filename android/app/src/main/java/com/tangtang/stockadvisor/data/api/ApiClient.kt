@@ -1,5 +1,6 @@
 package com.tangtang.stockadvisor.data.api
 
+import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.tangtang.stockadvisor.data.model.*
@@ -14,13 +15,23 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ApiClient @Inject constructor() {
+class ApiClient @Inject constructor(
+    private val context: Context
+) {
 
     companion object {
-        const val BASE_URL = "http://10.0.2.2:8000/"
+        private const val DEFAULT_BASE_URL = "http://10.0.2.2:8000/"
+        private const val PREFS_NAME = "stock_advisor_settings"
+        private const val KEY_BACKEND_URL = "backend_url"
         private const val TIMEOUT_SECONDS = 30L
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
+
+    private val baseUrl: String
+        get() {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.getString(KEY_BACKEND_URL, DEFAULT_BASE_URL) ?: DEFAULT_BASE_URL
+        }
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -32,7 +43,7 @@ class ApiClient @Inject constructor() {
 
     private suspend fun get(path: String): String = withContext(Dispatchers.IO) {
         val request = Request.Builder()
-            .url(BASE_URL + path)
+            .url(baseUrl + path)
             .get()
             .addHeader("Accept", "application/json")
             .build()
@@ -46,7 +57,7 @@ class ApiClient @Inject constructor() {
         val json = gson.toJson(body)
         val requestBody = json.toRequestBody(JSON_MEDIA_TYPE)
         val request = Request.Builder()
-            .url(BASE_URL + path)
+            .url(baseUrl + path)
             .post(requestBody)
             .addHeader("Content-Type", "application/json")
             .addHeader("Accept", "application/json")
@@ -59,11 +70,6 @@ class ApiClient @Inject constructor() {
 
     private inline fun <reified T> parseResponse(json: String): T {
         return gson.fromJson(json, T::class.java)
-    }
-
-    private inline fun <reified T> parseResponseList(json: String): List<T> {
-        val type = object : TypeToken<List<T>>() {}.type
-        return gson.fromJson(json, type)
     }
 
     // ==================== Stock Data ====================
@@ -148,6 +154,19 @@ class ApiClient @Inject constructor() {
         throw Exception(response.message)
     }
 
+    suspend fun importPortfolio(holdingsJson: String, capitalJson: String?): Boolean {
+        val body = mapOf(
+            "holdings" to gson.fromJson(holdingsJson, Any::class.java),
+            "capital" to if (capitalJson != null) gson.fromJson(capitalJson, Any::class.java) else null
+        )
+        val json = post("api/portfolio/import", body)
+        val response = parseResponse<ImportResponse>(json)
+        if (response.code == 200) {
+            return true
+        }
+        throw Exception(response.message)
+    }
+
     // ==================== Strategy ====================
 
     suspend fun getStrategyList(): List<StrategyInfo> {
@@ -178,19 +197,6 @@ class ApiClient @Inject constructor() {
         if (response.code == 200 && response.data != null) {
             val type = object : TypeToken<Map<String, Any>>() {}.type
             return gson.fromJson(response.data, type)
-        }
-        throw Exception(response.message)
-    }
-
-    suspend fun importPortfolio(holdingsJson: String, capitalJson: String?): Boolean {
-        val body = mapOf(
-            "holdings" to gson.fromJson(holdingsJson, Any::class.java),
-            "capital" to if (capitalJson != null) gson.fromJson(capitalJson, Any::class.java) else null
-        )
-        val json = post("api/portfolio/import", body)
-        val response = parseResponse<ImportResponse>(json)
-        if (response.code == 200) {
-            return true
         }
         throw Exception(response.message)
     }
