@@ -68,3 +68,21 @@ class PortfolioImportRequest(BaseModel):
     """持仓导入请求"""
     holdings: list[PortfolioImportItem] = Field(default_factory=list, description="持仓列表")
     capital: Optional[PortfolioImportCapital] = Field(None, description="资金信息（可选）")
+
+
+class StrategySaveRequest(BaseModel):
+    """策略保存请求"""
+    active_strategy: str = Field(..., description="策略名称")
+    params: dict = Field(default_factory=dict, description="策略参数")
+    metrics: dict = Field(default_factory=dict, description="策略指标（夏普、收益等）")
+    source: str = Field("手动", description="来源：回测、优化、手动")
+    last_updated: Optional[str] = Field(None, description="最后更新时间")
+
+
+class StrategyInfo(BaseModel):
+    """策略信息"""
+    active_strategy: str = Field(..., description="策略名称")
+    params: dict = Field(default_factory=dict, description="策略参数")
+    metrics: dict = Field(default_factory=dict, description="策略指标")
+    source: str = Field("手动", description="来源")
+    last_updated: Optional[str] = Field(None, description="最后更新时间")
