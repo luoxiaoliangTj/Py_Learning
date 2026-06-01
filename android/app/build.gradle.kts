@@ -25,10 +25,24 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            val propsFile = rootProject.file("signing.properties")
+            if (propsFile.exists()) {
+                val props = java.util.Properties().apply { propsFile.inputStream().use { load(it) } }
+                storeFile = file(props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
