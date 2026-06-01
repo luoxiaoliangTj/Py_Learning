@@ -37,8 +37,8 @@ class ApiClient @Inject constructor() {
             .addHeader("Accept", "application/json")
             .build()
         client.newCall(request).execute().use { response ->
-            if (!response.body) throw Exception("Empty response body")
-            response.body!!.string()
+            val body = response.body ?: throw Exception("Empty response body")
+            body.string()
         }
     }
 
@@ -52,8 +52,8 @@ class ApiClient @Inject constructor() {
             .addHeader("Accept", "application/json")
             .build()
         client.newCall(request).execute().use { response ->
-            if (!response.body) throw Exception("Empty response body")
-            response.body!!.string()
+            val body = response.body ?: throw Exception("Empty response body")
+            body.string()
         }
     }
 

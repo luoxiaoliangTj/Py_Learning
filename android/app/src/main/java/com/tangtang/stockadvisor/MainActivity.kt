@@ -104,6 +104,12 @@ fun MainScreen() {
                     },
                     onSearchClick = {
                         navController.navigate(NavRoutes.StockSearch.route)
+                    },
+                    onPortfolioClick = {
+                        navController.navigate(NavRoutes.Portfolio.route)
+                    },
+                    onSettingsClick = {
+                        navController.navigate(NavRoutes.Settings.route)
                     }
                 )
             }
@@ -116,7 +122,9 @@ fun MainScreen() {
                 )
             }
             composable(NavRoutes.Settings.route) {
-                SettingsScreen()
+                SettingsScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(
                 route = NavRoutes.Predict.route,
@@ -141,10 +149,10 @@ fun MainScreen() {
             }
             composable(NavRoutes.StockSearch.route) {
                 StockSearchScreen(
-                    onStockClick = { symbol ->
+                    onBack = { navController.popBackStack() },
+                    onStockSelected = { symbol ->
                         navController.navigate(NavRoutes.Predict.createRoute(symbol))
-                    },
-                    onBack = { navController.popBackStack() }
+                    }
                 )
             }
         }
