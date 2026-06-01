@@ -32,7 +32,7 @@ android {
             val propsFile = rootProject.file("signing.properties")
             if (propsFile.exists()) {
                 val props = Properties().apply { propsFile.inputStream().use { load(it) } }
-                storeFile = file(props.getProperty("storeFile"))
+                storeFile = file(props.getProperty("storeFile")).absoluteFile
                 storePassword = props.getProperty("storePassword")
                 keyAlias = props.getProperty("keyAlias")
                 keyPassword = props.getProperty("keyPassword")

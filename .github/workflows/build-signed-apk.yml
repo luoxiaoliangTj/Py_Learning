@@ -42,17 +42,19 @@ jobs:
 
       - name: Restore Keystore from Secret
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > stockadvisor.keystore
-          ls -la stockadvisor.keystore
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > /tmp/stockadvisor.keystore
+          ls -la /tmp/stockadvisor.keystore
 
       - name: Build Signed Release APK
         working-directory: ./android
         run: |
-          echo "storeFile=../stockadvisor.keystore" > signing.properties
+          echo "storeFile=/tmp/stockadvisor.keystore" > signing.properties
           echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> signing.properties
           echo "keyAlias=stockadvisor" >> signing.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> signing.properties
           echo "storeType=PKCS12" >> signing.properties
+          cat signing.properties
+          ls -la /tmp/stockadvisor.keystore
           ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload Signed APK
