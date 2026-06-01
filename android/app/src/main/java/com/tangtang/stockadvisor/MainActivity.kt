@@ -26,7 +26,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tangtang.stockadvisor.navigation.NavRoutes
-import com.tangtang.stockadvisor.ui.screens.*
+import com.tangtang.stockadvisor.ui.screen.*
 import com.tangtang.stockadvisor.ui.theme.StockAdvisorTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -109,6 +109,7 @@ fun MainScreen() {
             }
             composable(NavRoutes.Portfolio.route) {
                 PortfolioScreen(
+                    onBack = { navController.popBackStack() },
                     onStockClick = { symbol ->
                         navController.navigate(NavRoutes.Predict.createRoute(symbol))
                     }
