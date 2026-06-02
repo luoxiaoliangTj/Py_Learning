@@ -242,12 +242,8 @@ class StockRepository @Inject constructor(
     }
 
     fun runTool(toolName: String, params: Map<String, Any>): Flow<Result<Map<String, Any>>> = flow {
-        try {
-            val request = mapOf("tool_name" to toolName, "params" to params)
-            emit(Result.success(apiClient.downloadData(com.tangtang.stockadvisor.data.api.DownloadRequest(toolName))))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
+        // 工具箱通用执行端点（暂未实现，预留接口）
+        emit(Result.failure(Exception("工具执行功能暂未实现: $toolName")))
     }
 
     fun getDownloadStatus(symbol: String): Flow<Result<Map<String, Any>>> = flow {
