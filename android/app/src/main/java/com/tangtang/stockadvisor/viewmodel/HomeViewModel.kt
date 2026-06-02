@@ -52,7 +52,7 @@ class HomeViewModel @Inject constructor(
                 }
                 // 批量获取实时行情
                 val stocks = mutableListOf<StockInfo>()
-                for ((code, pos) in positions.take(20)) {
+                for ((code, pos) in positions.entries.take(20)) {
                     try {
                         val realtime = realtimeDataSource.fetchRealtimeData(code)
                         stocks.add(
