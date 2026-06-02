@@ -11,7 +11,7 @@ import javax.inject.Inject
 
 data class SettingsUiState(
     val tushareToken: String = "",
-    val backendUrl: String = "http://10.0.2.2:8000",
+    val backendUrl: String = "http://127.0.0.1:8000",
     val enableNotifications: Boolean = true,
     val enableDarkMode: Boolean = false,
     val refreshInterval: Int = 5,
@@ -36,7 +36,7 @@ class SettingsViewModel @Inject constructor(
     private fun loadSettings() {
         _uiState.value = SettingsUiState(
             tushareToken = prefs.getString("tushare_token", "") ?: "",
-            backendUrl = prefs.getString("backend_url", "http://10.0.2.2:8000") ?: "http://10.0.2.2:8000",
+            backendUrl = prefs.getString("backend_url", "http://127.0.0.1:8000") ?: "http://127.0.0.1:8000",
             enableNotifications = prefs.getBoolean("enable_notifications", true),
             enableDarkMode = prefs.getBoolean("enable_dark_mode", false),
             refreshInterval = prefs.getInt("refresh_interval", 5)

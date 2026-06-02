@@ -21,7 +21,7 @@ class ApiClient @Inject constructor(
 ) {
 
     companion object {
-        private const val DEFAULT_BASE_URL = "http://10.0.2.2:8000/"
+        private const val DEFAULT_BASE_URL = "http://127.0.0.1:8000/"
         private const val PREFS_NAME = "stock_advisor_settings"
         private const val KEY_BACKEND_URL = "backend_url"
         private const val TIMEOUT_SECONDS = 30L
