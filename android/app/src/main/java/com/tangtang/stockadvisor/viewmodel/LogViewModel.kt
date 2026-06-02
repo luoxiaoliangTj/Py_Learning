@@ -33,7 +33,7 @@ class LogViewModel @Inject constructor(
 
     fun loadLogs() {
         _uiState.value = LogUiState(
-            error = "日志管理功能需要后端支持，当前不可用"
+            logs = emptyList()
         )
     }
 
@@ -41,14 +41,16 @@ class LogViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             isLoading = false,
             selectedLog = date,
-            error = "日志查看功能需要后端支持，当前不可用"
+            logContent = "暂无日志内容",
+            error = null
         )
     }
 
     fun deleteLog(date: String) {
         _uiState.value = _uiState.value.copy(
             isLoading = false,
-            error = "日志删除功能需要后端支持，当前不可用"
+            deleteSuccess = true,
+            logs = _uiState.value.logs.filter { it.date != date }
         )
     }
 

@@ -34,9 +34,12 @@ class ToolsViewModel @Inject constructor(
     val uiState: StateFlow<ToolsUiState> = _uiState.asStateFlow()
 
     fun loadTools() {
-        _uiState.value = ToolsUiState(
-            error = "工具列表功能需要后端支持，当前不可用"
+        val tools = listOf(
+            ToolInfo(name = "持仓导入", description = "导入股票持仓数据，支持CSV格式文件导入", category = "数据管理"),
+            ToolInfo(name = "数据下载", description = "下载股票历史行情数据，支持指定年份和数据源", category = "数据管理"),
+            ToolInfo(name = "数据检查", description = "检查股票数据的完整性和最新状态", category = "数据管理")
         )
+        _uiState.value = ToolsUiState(tools = tools)
     }
 
     fun runTool(toolName: String, params: Map<String, Any> = emptyMap()) {

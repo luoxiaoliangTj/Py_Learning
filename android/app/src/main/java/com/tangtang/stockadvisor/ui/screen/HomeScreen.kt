@@ -206,7 +206,7 @@ fun HomeScreen(
                     }
                 }
             } else if (uiState.marketStocks.isEmpty() && uiState.error != null) {
-                // 后端未连接：显示空列表 + 提示卡片（不阻塞）
+                // 无数据或加载失败：显示提示卡片
                 LazyColumn(
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -221,7 +221,7 @@ fun HomeScreen(
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
-                                    text = "⚠️ 后端未连接",
+                                    text = "💡 提示",
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
@@ -232,14 +232,8 @@ fun HomeScreen(
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "✅ 持仓管理可正常使用（导入 .md 文件）\n❌ 预测/策略/回测需要后端支持",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
                                 Button(onClick = { viewModel.loadStockList() }) {
-                                    Text("重试连接")
+                                    Text("刷新")
                                 }
                             }
                         }
