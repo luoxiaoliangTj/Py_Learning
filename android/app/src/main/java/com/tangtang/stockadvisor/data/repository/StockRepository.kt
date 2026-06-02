@@ -8,6 +8,7 @@ import com.tangtang.stockadvisor.data.api.PredictRequest
 import com.tangtang.stockadvisor.data.api.RealtimePredictRequest
 import com.tangtang.stockadvisor.data.api.SelectStockRequest
 import com.tangtang.stockadvisor.data.api.UpdateCapitalRequest
+import com.tangtang.stockadvisor.data.api.PositionUpdateRequest
 import com.tangtang.stockadvisor.data.model.BacktestResult
 import com.tangtang.stockadvisor.data.model.OnlinePredictionResult
 import com.tangtang.stockadvisor.data.model.PortfolioItem
@@ -141,6 +142,38 @@ class StockRepository @Inject constructor(
         return try {
             apiClient.importPortfolio(holdingsJson, capitalJson)
             Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun addOrUpdatePosition(
+        symbol: String,
+        name: String,
+        shares: Int,
+        costPrice: Double
+    ): Result<Boolean> {
+        return try {
+            apiClient.addOrUpdatePosition(
+                PositionUpdateRequest(symbol, name, shares, costPrice)
+            )
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deletePosition(symbol: String): Result<Boolean> {
+        return try {
+            Result.success(apiClient.deletePosition(symbol))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun clearAllPositions(): Result<Int> {
+        return try {
+            Result.success(apiClient.clearAllPositions())
         } catch (e: Exception) {
             Result.failure(e)
         }

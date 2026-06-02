@@ -180,6 +180,33 @@ class ApiClient @Inject constructor(
         throw Exception(response.message)
     }
 
+    suspend fun addOrUpdatePosition(request: PositionUpdateRequest): PositionUpdateResponse {
+        val json = post("api/portfolio/position", request)
+        val response = parseResponse<PositionUpdateResponse>(json)
+        if (response.code == 200) {
+            return response
+        }
+        throw Exception(response.message)
+    }
+
+    suspend fun deletePosition(symbol: String): Boolean {
+        val json = delete("api/portfolio/position/$symbol")
+        val response = parseResponse<MapResponse>(json)
+        if (response.code == 200) {
+            return true
+        }
+        throw Exception(response.message)
+    }
+
+    suspend fun clearAllPositions(): Int {
+        val json = delete("api/portfolio/positions")
+        val response = parseResponse<MapResponse>(json)
+        if (response.code == 200) {
+            return response.data?.asInt ?: 0
+        }
+        throw Exception(response.message)
+    }
+
     // ==================== Strategy ====================
 
     suspend fun getStrategyList(): List<StrategyInfo> {
@@ -242,6 +269,13 @@ data class BacktestRequest(
 data class UpdateCapitalRequest(
     val available_cash: Double? = null,
     val total_capital: Double? = null
+)
+
+data class PositionUpdateRequest(
+    val symbol: String,
+    val name: String = "",
+    val shares: Int,
+    val cost_price: Double
 )
 
 data class OptimizeRequest(

@@ -108,6 +108,9 @@ fun MainScreen() {
                     onPortfolioClick = {
                         navController.navigate(NavRoutes.Portfolio.route)
                     },
+                    onPortfolioManagerClick = {
+                        navController.navigate(NavRoutes.PortfolioManager.route)
+                    },
                     onSettingsClick = {
                         navController.navigate(NavRoutes.Settings.route)
                     }
@@ -115,6 +118,14 @@ fun MainScreen() {
             }
             composable(NavRoutes.Portfolio.route) {
                 PortfolioScreen(
+                    onBack = { navController.popBackStack() },
+                    onStockClick = { symbol ->
+                        navController.navigate(NavRoutes.Predict.createRoute(symbol))
+                    }
+                )
+            }
+            composable(NavRoutes.PortfolioManager.route) {
+                PortfolioManagerScreen(
                     onBack = { navController.popBackStack() },
                     onStockClick = { symbol ->
                         navController.navigate(NavRoutes.Predict.createRoute(symbol))

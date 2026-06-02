@@ -171,3 +171,9 @@ data class ImportResponse(
     @SerializedName("message") val message: String,
     @SerializedName("data") val data: com.google.gson.JsonElement?
 )
+
+data class PositionUpdateResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)

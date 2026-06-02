@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.tangtang.stockadvisor.ui.screen.BacktestScreen
 import com.tangtang.stockadvisor.ui.screen.HomeScreen
+import com.tangtang.stockadvisor.ui.screen.PortfolioManagerScreen
 import com.tangtang.stockadvisor.ui.screen.PortfolioScreen
 import com.tangtang.stockadvisor.ui.screen.PredictScreen
 import com.tangtang.stockadvisor.ui.screen.SettingsScreen
@@ -16,6 +17,7 @@ object Routes {
     const val PREDICT = "predict/{symbol}"
     const val BACKTEST = "backtest/{symbol}"
     const val PORTFOLIO = "portfolio"
+    const val PORTFOLIO_MANAGER = "portfolio_manager"
     const val SETTINGS = "settings"
     const val STOCK_SEARCH = "stock_search"
 
@@ -42,6 +44,9 @@ fun AppNavGraph(
                 },
                 onPortfolioClick = {
                     navController.navigate(Routes.PORTFOLIO)
+                },
+                onPortfolioManagerClick = {
+                    navController.navigate(Routes.PORTFOLIO_MANAGER)
                 },
                 onSettingsClick = {
                     navController.navigate(Routes.SETTINGS)
@@ -70,6 +75,15 @@ fun AppNavGraph(
 
         composable(Routes.PORTFOLIO) {
             PortfolioScreen(
+                onBack = { navController.popBackStack() },
+                onStockClick = { symbol ->
+                    navController.navigate(Routes.predict(symbol))
+                }
+            )
+        }
+
+        composable(Routes.PORTFOLIO_MANAGER) {
+            PortfolioManagerScreen(
                 onBack = { navController.popBackStack() },
                 onStockClick = { symbol ->
                     navController.navigate(Routes.predict(symbol))

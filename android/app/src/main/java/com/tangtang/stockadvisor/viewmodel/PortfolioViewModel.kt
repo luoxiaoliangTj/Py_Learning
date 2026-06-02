@@ -256,4 +256,70 @@ class PortfolioViewModel @Inject constructor(
             }
         }
     }
+
+    fun addOrUpdatePosition(symbol: String, name: String, shares: Int, costPrice: Double) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val result = repository.addOrUpdatePosition(symbol, name, shares, costPrice)
+                result.onSuccess {
+                    loadPortfolio()
+                }.onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = e.message ?: "操作失败"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "操作失败"
+                )
+            }
+        }
+    }
+
+    fun deletePosition(symbol: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val result = repository.deletePosition(symbol)
+                result.onSuccess {
+                    loadPortfolio()
+                }.onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = e.message ?: "删除失败"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "删除失败"
+                )
+            }
+        }
+    }
+
+    fun clearAllPositions() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val result = repository.clearAllPositions()
+                result.onSuccess {
+                    loadPortfolio()
+                }.onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = e.message ?: "清空失败"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "清空失败"
+                )
+            }
+        }
+    }
 }

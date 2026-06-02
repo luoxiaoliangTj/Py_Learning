@@ -9,6 +9,7 @@ sealed class NavRoutes(val route: String) {
         fun createRoute(symbol: String) = "backtest/$symbol"
     }
     object Portfolio : NavRoutes("portfolio")
+    object PortfolioManager : NavRoutes("portfolio_manager")
     object Settings : NavRoutes("settings")
     object StockSearch : NavRoutes("stock_search")
 }
