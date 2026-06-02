@@ -98,7 +98,11 @@ data class PortfolioSummary(
 
 data class StrategyInfo(
     @SerializedName("name") val name: String = "",
-    @SerializedName("description") val description: String = ""
+    @SerializedName("symbol") val symbol: String = "",
+    @SerializedName("description") val description: String = "",
+    @SerializedName("sharpe_ratio") val sharpeRatio: Double = 0.0,
+    @SerializedName("annual_return") val annualReturn: Double = 0.0,
+    @SerializedName("strategy_type") val strategyType: String = ""
 )
 
 data class OnlinePredictionResult(
@@ -173,6 +177,56 @@ data class ImportResponse(
 )
 
 data class PositionUpdateResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+// ==================== Strategy Detail ====================
+
+data class StrategyResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+data class StrategySaveRequest(
+    val symbol: String,
+    val strategy_type: String,
+    val params: Map<String, Any>? = null
+)
+
+// ==================== Logs ====================
+
+data class LogListResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+data class LogResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+// ==================== Tools ====================
+
+data class ToolsResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+data class DownloadResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: com.google.gson.JsonElement?
+)
+
+// ==================== Realtime ====================
+
+data class RealtimeResponse(
     @SerializedName("code") val code: Int,
     @SerializedName("message") val message: String,
     @SerializedName("data") val data: com.google.gson.JsonElement?

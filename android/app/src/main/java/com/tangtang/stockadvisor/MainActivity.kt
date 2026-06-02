@@ -57,6 +57,7 @@ fun MainScreen() {
 
     val bottomNavItems = listOf(
         BottomNavItem(NavRoutes.Home.route, "首页", Icons.Filled.Home),
+        BottomNavItem(NavRoutes.Strategy.route, "策略", Icons.Filled.TrendingUp),
         BottomNavItem(NavRoutes.Portfolio.route, "持仓", Icons.Filled.AccountBalance),
         BottomNavItem(NavRoutes.Settings.route, "设置", Icons.Filled.Settings)
     )
@@ -64,6 +65,7 @@ fun MainScreen() {
     // Hide bottom bar on detail screens
     val showBottomBar = currentDestination?.route in listOf(
         NavRoutes.Home.route,
+        NavRoutes.Strategy.route,
         NavRoutes.Portfolio.route,
         NavRoutes.Settings.route
     )
@@ -113,6 +115,9 @@ fun MainScreen() {
                     },
                     onSettingsClick = {
                         navController.navigate(NavRoutes.Settings.route)
+                    },
+                    onStrategyClick = {
+                        navController.navigate(NavRoutes.Strategy.route)
                     }
                 )
             }
@@ -164,6 +169,11 @@ fun MainScreen() {
                     onStockSelected = { symbol ->
                         navController.navigate(NavRoutes.Predict.createRoute(symbol))
                     }
+                )
+            }
+            composable(NavRoutes.Strategy.route) {
+                StrategyScreen(
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

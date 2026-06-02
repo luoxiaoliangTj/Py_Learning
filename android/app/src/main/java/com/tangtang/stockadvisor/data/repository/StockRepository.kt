@@ -178,4 +178,93 @@ class StockRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    // ==================== Strategy (extended) ===================
+
+    fun getStrategy(symbol: String): Flow<Result<StrategyInfo>> = flow {
+        try {
+            emit(Result.success(apiClient.getStrategy(symbol)))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    fun saveStrategy(symbol: String, strategyType: String): Flow<Result<StrategyInfo>> = flow {
+        try {
+            emit(Result.success(apiClient.saveStrategy(symbol, com.tangtang.stockadvisor.data.api.StrategySaveRequest(symbol, strategyType))))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    fun deleteStrategy(symbol: String): Flow<Result<Boolean>> = flow {
+        try {
+            emit(Result.success(apiClient.deleteStrategy(symbol)))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    // ==================== Logs ===================
+
+    fun getLogList(): Flow<Result<Map<String, Map<String, Any>>>> = flow {
+        try {
+            emit(Result.success(apiClient.getLogList()))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    fun getLog(date: String): Flow<Result<String>> = flow {
+        try {
+            emit(Result.success(apiClient.getLog(date)))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    suspend fun deleteLog(date: String): Result<Boolean> {
+        return try {
+            Result.success(apiClient.deleteLog(date))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // ==================== Tools (extended) ===================
+
+    fun getToolsList(): Flow<Result<Map<String, Map<String, Any>>>> = flow {
+        try {
+            emit(Result.success(apiClient.getTools()))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    fun runTool(toolName: String, params: Map<String, Any>): Flow<Result<Map<String, Any>>> = flow {
+        try {
+            val request = mapOf("tool_name" to toolName, "params" to params)
+            emit(Result.success(apiClient.downloadData(com.tangtang.stockadvisor.data.api.DownloadRequest(toolName))))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    fun getDownloadStatus(symbol: String): Flow<Result<Map<String, Any>>> = flow {
+        try {
+            emit(Result.success(apiClient.getDownloadStatus(symbol)))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    // ==================== Realtime Data ===================
+
+    fun getRealtimeData(symbol: String): Flow<Result<Map<String, Any>>> = flow {
+        try {
+            emit(Result.success(apiClient.getRealtimeData(symbol)))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
 }

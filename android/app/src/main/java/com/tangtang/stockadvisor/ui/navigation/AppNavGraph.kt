@@ -11,6 +11,7 @@ import com.tangtang.stockadvisor.ui.screen.PortfolioScreen
 import com.tangtang.stockadvisor.ui.screen.PredictScreen
 import com.tangtang.stockadvisor.ui.screen.SettingsScreen
 import com.tangtang.stockadvisor.ui.screen.StockSearchScreen
+import com.tangtang.stockadvisor.ui.screen.StrategyScreen
 
 object Routes {
     const val HOME = "home"
@@ -20,6 +21,7 @@ object Routes {
     const val PORTFOLIO_MANAGER = "portfolio_manager"
     const val SETTINGS = "settings"
     const val STOCK_SEARCH = "stock_search"
+    const val STRATEGY = "strategy"
 
     fun predict(symbol: String) = "predict/$symbol"
     fun backtest(symbol: String) = "backtest/$symbol"
@@ -103,6 +105,12 @@ fun AppNavGraph(
                 onStockSelected = { symbol ->
                     navController.navigate(Routes.predict(symbol))
                 }
+            )
+        }
+
+        composable(Routes.STRATEGY) {
+            StrategyScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }

@@ -240,6 +240,99 @@ class ApiClient @Inject constructor(
         }
         throw Exception(response.message)
     }
+
+    // ==================== Strategy (extended) ====================
+
+    suspend fun getStrategy(symbol: String): StrategyInfo {
+        val json = get("api/strategy/$symbol")
+        val response = parseResponse<StrategyResponse>(json)
+        if (response.code == 200 && response.data != null) {
+            return gson.fromJson(response.data, StrategyInfo::class.java)
+        }
+        throw Exception(response.message)
+    }
+
+    suspend fun saveStrategy(symbol: String, request: StrategySaveRequest): StrategyInfo {
+        val json = post("api/strategy/$symbol", request)
+        val response = parseResponse<StrategyResponse>(json)
+        if (response.code == 200 && response.data != null) {
+            return gson.fromJson(response.data, StrategyInfo::class.java)
+        }
+        throw Exception(response.message)
+    }
+
+    suspend fun deleteStrategy(symbol: String): Boolean {
+        val json = delete("api/strategy/$symbol")
+        val response = parseResponse<MapResponse>(json)
+        if (response.code == 200) {
+            return true
+        }
+        throw Exception(response.message)
+    }
+
+    // ==================== Logs ====================
+
+    suspend fun getLogList(): Map<String, Map<String, Any>> {
+        val json = get("api/logs/list")
+        val response = parseResponse<LogListResponse>(json)
+        if (response.code == 200 && response.data != null) {
+            val type = object : TypeToken<Map<String, Map<String, Any>>>() {}.type
+            return gson.fromJson(response.data, type)
+        }
+        throw Exception(response.message)
+    }
+
+    suspend fun getLog(date: String): String {
+        val json = get("api/logs/$date")
+        val response = parseResponse<LogResponse>(json)
+        if (response.code == 200 && response.data != null) {
+            return response.data.asString
+        }
+        throw Exception(response.message)
+    }
+
+    suspend fun deleteLog(date: String): Boolean {
+        val json = delete("api/logs/$date")
+        val response = parseResponse<MapResponse>(json)
+        if (response.code == 200) {
+            return true
+        }
+        throw Exception(response.message)
+    }
+
+    // ==================== Tools (extended) ====================
+
+    suspend fun getTools(): Map<String, Map<String, Any>> {
+        val json = get("api/tools")
+        val response = parseResponse<ToolsResponse>(json)
+        if (response.code == 200 && response.data != null) {
+            val type = object : TypeToken<Map<String, Map<String, Any>>>() {}.type
+            return gson.fromJson(response.data, type)
+        }
+        throw Exception(response.message)
+    }
+
+    suspend fun getDownloadStatus(symbol: String): Map<String, Any> {
+        val json = get("api/tools/download/status/$symbol")
+        val response = parseResponse<MapResponse>(json)
+        if (response.code == 200 && response.data != null) {
+            val type = object : TypeToken<Map<String, Any>>() {}.type
+            return gson.fromJson(response.data, type)
+        }
+        throw Exception(response.message)
+    }
+
+    // ==================== Realtime Data ====================
+
+    suspend fun getRealtimeData(symbol: String): Map<String, Any> {
+        val json = get("api/realtime/$symbol")
+        val response = parseResponse<RealtimeResponse>(json)
+        if (response.code == 200 && response.data != null) {
+            val type = object : TypeToken<Map<String, Any>>() {}.type
+            return gson.fromJson(response.data, type)
+        }
+        throw Exception(response.message)
+    }
 }
 
 // ==================== Request Data Classes ====================
@@ -287,4 +380,10 @@ data class DownloadRequest(
     val symbol: String,
     val years: Int? = null,
     val source: String? = null
+)
+
+data class StrategySaveRequest(
+    val symbol: String,
+    val strategy_type: String,
+    val params: Map<String, Any>? = null
 )
