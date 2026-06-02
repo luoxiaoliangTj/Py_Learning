@@ -372,8 +372,8 @@ class HistoricalDataDownloader @Inject constructor(
         )
 
         val jsonBody = gson.toJson(requestBody)
-        val mediaType = okhttp3.MediaType.parse("application/json; charset=utf-8")
-        val body = okhttp3.RequestBody.create(mediaType, jsonBody)
+        val mediaType = "application/json; charset=utf-8".toMediaType()
+        val body = jsonBody.toRequestBody(mediaType)
 
         val request = Request.Builder()
             .url(TUSHARE_DAILY_URL)
