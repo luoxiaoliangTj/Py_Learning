@@ -2,7 +2,6 @@ package com.tangtang.stockadvisor.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tangtang.stockadvisor.data.model.OnlinePredictionResult
 import com.tangtang.stockadvisor.data.repository.StockRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job

@@ -1,13 +1,11 @@
 package com.tangtang.stockadvisor.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.tangtang.stockadvisor.data.repository.StockRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class BacktestUiState(
@@ -35,31 +33,11 @@ class BacktestViewModel @Inject constructor(
     val uiState: StateFlow<BacktestUiState> = _uiState.asStateFlow()
 
     fun runBacktest(symbol: String, strategyType: String = "channel") {
-        _uiState.value = BacktestUiState(symbol = symbol, strategyType = strategyType, isLoading = true)
-
-        viewModelScope.launch {
-            repository.runBacktest(symbol, strategyType).collect { result ->
-                result.onSuccess { backtestResult ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        stockName = backtestResult.name,
-                        totalReturn = backtestResult.totalReturn,
-                        annualReturn = backtestResult.annualReturn,
-                        maxDrawdown = backtestResult.maxDrawdown,
-                        sharpeRatio = backtestResult.sharpeRatio,
-                        winRate = backtestResult.winRate,
-                        totalTrades = backtestResult.totalTrades,
-                        finalCapital = backtestResult.finalCapital,
-                        initialCapital = backtestResult.initialCapital,
-                        error = null
-                    )
-                }.onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = e.message ?: "回测执行失败"
-                    )
-                }
-            }
-        }
+        _uiState.value = BacktestUiState(
+            symbol = symbol,
+            strategyType = strategyType,
+            isLoading = false,
+            error = "回测功能需要后端支持，当前不可用"
+        )
     }
 }

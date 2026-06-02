@@ -34,30 +34,9 @@ class ToolsViewModel @Inject constructor(
     val uiState: StateFlow<ToolsUiState> = _uiState.asStateFlow()
 
     fun loadTools() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            repository.getToolsList().collect { result ->
-                result.onSuccess { toolsMap ->
-                    val tools = toolsMap.map { (name, info) ->
-                        val infoMap = info as? Map<*, *>
-                        ToolInfo(
-                            name = name,
-                            description = infoMap?.get("description") as? String ?: "",
-                            category = infoMap?.get("category") as? String ?: ""
-                        )
-                    }
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        tools = tools
-                    )
-                }.onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = e.message ?: "加载工具列表失败"
-                    )
-                }
-            }
-        }
+        _uiState.value = ToolsUiState(
+            error = "工具列表功能需要后端支持，当前不可用"
+        )
     }
 
     fun runTool(toolName: String, params: Map<String, Any> = emptyMap()) {
@@ -89,11 +68,12 @@ class ToolsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null, downloadStatus = "下载中...")
             val result = repository.downloadData(symbol, years, source)
             result.onSuccess { response ->
-                val status = response["status"] as? String ?: "完成"
+                val success = response["success"] as? Boolean ?: false
                 val message = response["message"] as? String ?: ""
+                val recordCount = response["record_count"] as? Int ?: 0
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    downloadStatus = "$status: $message"
+                    downloadStatus = if (success) "下载完成: $recordCount条记录 - $message" else "下载失败: $message"
                 )
             }.onFailure { e ->
                 _uiState.value = _uiState.value.copy(
@@ -110,9 +90,11 @@ class ToolsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             repository.getDownloadStatus(symbol).collect { result ->
                 result.onSuccess { status ->
+                    val exists = status["exists"] as? Boolean ?: false
+                    val message = status["message"] as? String ?: ""
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        downloadStatus = status.toString()
+                        downloadStatus = if (exists) "数据已存在: $message" else message
                     )
                 }.onFailure { e ->
                     _uiState.value = _uiState.value.copy(

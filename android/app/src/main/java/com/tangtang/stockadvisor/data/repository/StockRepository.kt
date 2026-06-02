@@ -3,22 +3,8 @@ package com.tangtang.stockadvisor.data.repository
 import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.tangtang.stockadvisor.data.api.ApiClient
-import com.tangtang.stockadvisor.data.api.BacktestRequest
-import com.tangtang.stockadvisor.data.api.DownloadRequest
-import com.tangtang.stockadvisor.data.api.OptimizeRequest
-import com.tangtang.stockadvisor.data.api.PredictRequest
-import com.tangtang.stockadvisor.data.api.RealtimePredictRequest
-import com.tangtang.stockadvisor.data.api.SelectStockRequest
-import com.tangtang.stockadvisor.data.api.UpdateCapitalRequest
-import com.tangtang.stockadvisor.data.api.PositionUpdateRequest
-import com.tangtang.stockadvisor.data.model.BacktestResult
-import com.tangtang.stockadvisor.data.model.OnlinePredictionResult
-import com.tangtang.stockadvisor.data.model.PortfolioItem
-import com.tangtang.stockadvisor.data.model.PortfolioSummary
-import com.tangtang.stockadvisor.data.model.PredictionResult
-import com.tangtang.stockadvisor.data.model.StockInfo
-import com.tangtang.stockadvisor.data.model.StrategyInfo
+import com.tangtang.stockadvisor.data.remote.HistoricalDataDownloader
+import com.tangtang.stockadvisor.data.remote.RealtimeDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -43,193 +29,9 @@ data class CapitalData(
 
 @Singleton
 class StockRepository @Inject constructor(
-    private val apiClient: ApiClient
+    private val realtimeDataSource: RealtimeDataSource,
+    private val historicalDataDownloader: HistoricalDataDownloader
 ) {
-
-    fun getStockList(): Flow<Result<List<StockInfo>>> = flow {
-        try {
-            emit(Result.success(apiClient.getStockList()))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    suspend fun selectStock(
-        symbol: String,
-        name: String = "",
-        indexSymbol: String = "",
-        indexName: String = ""
-    ): Result<StockInfo> {
-        return try {
-            Result.success(apiClient.selectStock(
-                SelectStockRequest(symbol, name, indexSymbol, indexName)
-            ))
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    fun getDailyPrediction(symbol: String): Flow<Result<PredictionResult>> = flow {
-        try {
-            emit(Result.success(apiClient.getDailyPrediction(PredictRequest(symbol))))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    fun getRealtimePrediction(symbol: String, prevClose: Double? = null): Flow<Result<OnlinePredictionResult>> = flow {
-        try {
-            emit(Result.success(apiClient.getRealtimePrediction(RealtimePredictRequest(symbol, prevClose))))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    fun runBacktest(
-        symbol: String,
-        strategyType: String,
-        params: Map<String, Any>? = null
-    ): Flow<Result<BacktestResult>> = flow {
-        try {
-            emit(Result.success(apiClient.runBacktest(BacktestRequest(symbol, strategyType, params))))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    fun getHoldings(): Flow<Result<List<PortfolioItem>>> = flow {
-        try {
-            // 从本地JSON读取持仓，不再调用后端API
-            // 注意：此方法需要 Context 才能读取文件，但 Flow 签名无法直接传入 Context。
-            // 调用方应使用 loadPositionsFromLocal(context) 直接获取本地持仓数据。
-            // 此处返回空列表作为兼容保留。
-            emit(Result.success(emptyList()))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    fun getCapital(): Flow<Result<PortfolioSummary>> = flow {
-        try {
-            emit(Result.success(apiClient.getCapital()))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    suspend fun updateCapital(
-        availableCash: Double? = null,
-        totalCapital: Double? = null
-    ): Result<PortfolioSummary> {
-        return try {
-            Result.success(apiClient.updateCapital(UpdateCapitalRequest(availableCash, totalCapital)))
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    fun getStrategyList(): Flow<Result<List<StrategyInfo>>> = flow {
-        try {
-            emit(Result.success(apiClient.getStrategyList()))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    fun optimizeStrategy(
-        symbol: String,
-        strategyType: String
-    ): Flow<Result<Map<String, Any>>> = flow {
-        try {
-            emit(Result.success(apiClient.optimizeStrategy(OptimizeRequest(symbol, strategyType))))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    suspend fun downloadData(
-        symbol: String,
-        years: Int? = null,
-        source: String? = null
-    ): Result<Map<String, Any>> {
-        return try {
-            Result.success(apiClient.downloadData(DownloadRequest(symbol, years, source)))
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun importPortfolio(
-        context: Context,
-        holdingsJson: String,
-        capitalJson: String?
-    ): Result<Boolean> {
-        return try {
-            // 解析持仓JSON: Map<String, PositionData>
-            val positionsType = object : TypeToken<Map<String, PositionData>>() {}.type
-            val positions: Map<String, PositionData> = gson.fromJson(holdingsJson, positionsType)
-                ?: emptyMap()
-
-            // 保存持仓到本地
-            savePositionsToLocal(context, positions)
-
-            // 如果有资金信息，解析并保存
-            if (capitalJson != null) {
-                val capital: CapitalData = gson.fromJson(capitalJson, CapitalData::class.java)
-                saveCapitalToLocal(context, capital)
-            }
-
-            Result.success(true)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun addOrUpdatePosition(
-        context: Context,
-        symbol: String,
-        name: String,
-        shares: Int,
-        costPrice: Double
-    ): Result<Boolean> {
-        return try {
-            val positions = loadPositionsFromLocal(context).toMutableMap()
-            val now = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
-                .format(java.util.Date())
-            positions[symbol] = PositionData(
-                shares = shares,
-                costPrice = costPrice,
-                stockName = name,
-                lastUpdated = now
-            )
-            savePositionsToLocal(context, positions)
-            Result.success(true)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun deletePosition(context: Context, symbol: String): Result<Boolean> {
-        return try {
-            val positions = loadPositionsFromLocal(context).toMutableMap()
-            positions.remove(symbol)
-            savePositionsToLocal(context, positions)
-            Result.success(true)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun clearAllPositions(context: Context): Result<Int> {
-        return try {
-            val positions = loadPositionsFromLocal(context)
-            val count = positions.size
-            savePositionsToLocal(context, emptyMap())
-            Result.success(count)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
 
     // ==================== Local JSON Storage ===================
 
@@ -298,88 +100,153 @@ class StockRepository @Inject constructor(
         }
     }
 
-    // ==================== Strategy (extended) ===================
+    // ==================== Portfolio Operations (Local) ===================
 
-    fun getStrategy(symbol: String): Flow<Result<StrategyInfo>> = flow {
-        try {
-            emit(Result.success(apiClient.getStrategy(symbol)))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    fun saveStrategy(symbol: String, strategyType: String): Flow<Result<StrategyInfo>> = flow {
-        try {
-            emit(Result.success(apiClient.saveStrategy(symbol, com.tangtang.stockadvisor.data.api.StrategySaveRequest(symbol, strategyType))))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    fun deleteStrategy(symbol: String): Flow<Result<Boolean>> = flow {
-        try {
-            emit(Result.success(apiClient.deleteStrategy(symbol)))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    // ==================== Logs ===================
-
-    fun getLogList(): Flow<Result<Map<String, Map<String, Any>>>> = flow {
-        try {
-            emit(Result.success(apiClient.getLogList()))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    fun getLog(date: String): Flow<Result<String>> = flow {
-        try {
-            emit(Result.success(apiClient.getLog(date)))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }
-
-    suspend fun deleteLog(date: String): Result<Boolean> {
+    suspend fun importPortfolio(
+        context: Context,
+        holdingsJson: String,
+        capitalJson: String?
+    ): Result<Boolean> {
         return try {
-            Result.success(apiClient.deleteLog(date))
+            val positionsType = object : TypeToken<Map<String, PositionData>>() {}.type
+            val positions: Map<String, PositionData> = gson.fromJson(holdingsJson, positionsType)
+                ?: emptyMap()
+            savePositionsToLocal(context, positions)
+            if (capitalJson != null) {
+                val capital: CapitalData = gson.fromJson(capitalJson, CapitalData::class.java)
+                saveCapitalToLocal(context, capital)
+            }
+            Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    // ==================== Tools (extended) ===================
+    suspend fun addOrUpdatePosition(
+        context: Context,
+        symbol: String,
+        name: String,
+        shares: Int,
+        costPrice: Double
+    ): Result<Boolean> {
+        return try {
+            val positions = loadPositionsFromLocal(context).toMutableMap()
+            val now = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                .format(java.util.Date())
+            positions[symbol] = PositionData(
+                shares = shares,
+                costPrice = costPrice,
+                stockName = name,
+                lastUpdated = now
+            )
+            savePositionsToLocal(context, positions)
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
-    fun getToolsList(): Flow<Result<Map<String, Map<String, Any>>>> = flow {
+    suspend fun deletePosition(context: Context, symbol: String): Result<Boolean> {
+        return try {
+            val positions = loadPositionsFromLocal(context).toMutableMap()
+            positions.remove(symbol)
+            savePositionsToLocal(context, positions)
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun clearAllPositions(context: Context): Result<Int> {
+        return try {
+            val positions = loadPositionsFromLocal(context)
+            val count = positions.size
+            savePositionsToLocal(context, emptyMap())
+            Result.success(count)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // ==================== Realtime Data (via RealtimeDataSource) ===================
+
+    fun getRealtimeData(symbol: String): Flow<Result<Map<String, Any>>> = flow {
         try {
-            emit(Result.success(apiClient.getTools()))
+            val data = realtimeDataSource.fetchRealtimeData(symbol)
+            val map = mapOf(
+                "name" to data.name,
+                "current_price" to data.price,
+                "prev_close" to data.prevClose,
+                "open" to data.open,
+                "high" to data.high,
+                "low" to data.low,
+                "change" to data.change,
+                "change_percent" to data.changePct,
+                "volume" to data.volume,
+                "amount" to data.amount,
+                "date" to data.date,
+                "time" to data.time,
+                "source" to data.source,
+                "valid" to data.valid
+            )
+            emit(Result.success(map))
         } catch (e: Exception) {
             emit(Result.failure(e))
         }
     }
 
-    fun runTool(toolName: String, params: Map<String, Any>): Flow<Result<Map<String, Any>>> = flow {
-        // 工具箱通用执行端点（暂未实现，预留接口）
-        emit(Result.failure(Exception("工具执行功能暂未实现: $toolName")))
+    fun getRealtimeDataForStockList(symbols: List<String>): Flow<Result<Map<String, com.tangtang.stockadvisor.data.model.StockInfo>>> = flow {
+        try {
+            val batchData = realtimeDataSource.fetchRealtimeDataBatch(symbols)
+            val stockMap = batchData.mapValues { (_, data) ->
+                realtimeDataSource.toStockInfo(data)
+            }
+            emit(Result.success(stockMap))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    // ==================== Historical Data Download (via HistoricalDataDownloader) ===================
+
+    suspend fun downloadData(
+        symbol: String,
+        years: Int? = null,
+        source: String? = null
+    ): Result<Map<String, Any>> {
+        return try {
+            val result = historicalDataDownloader.downloadDailyData(symbol, years ?: 8)
+            val map = mapOf(
+                "success" to result.success,
+                "source" to result.source,
+                "record_count" to result.recordCount,
+                "file_path" to (result.filePath ?: ""),
+                "message" to result.message
+            )
+            Result.success(map)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     fun getDownloadStatus(symbol: String): Flow<Result<Map<String, Any>>> = flow {
         try {
-            emit(Result.success(apiClient.getDownloadStatus(symbol)))
+            val check = historicalDataDownloader.checkExistingData(symbol)
+            val map = mapOf(
+                "exists" to check.exists,
+                "message" to check.message,
+                "record_count" to check.recordCount,
+                "date_range" to check.dateRange
+            )
+            emit(Result.success(map))
         } catch (e: Exception) {
             emit(Result.failure(e))
         }
     }
 
-    // ==================== Realtime Data ===================
+    // ==================== Tools (stub) ===================
 
-    fun getRealtimeData(symbol: String): Flow<Result<Map<String, Any>>> = flow {
-        try {
-            emit(Result.success(apiClient.getRealtimeData(symbol)))
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
+    fun runTool(toolName: String, params: Map<String, Any>): Flow<Result<Map<String, Any>>> = flow {
+        emit(Result.failure(Exception("工具执行功能暂未实现: $toolName")))
     }
 }

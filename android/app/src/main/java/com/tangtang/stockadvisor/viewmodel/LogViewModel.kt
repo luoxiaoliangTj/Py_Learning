@@ -1,13 +1,11 @@
 package com.tangtang.stockadvisor.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.tangtang.stockadvisor.data.repository.StockRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class LogEntry(
@@ -34,69 +32,24 @@ class LogViewModel @Inject constructor(
     val uiState: StateFlow<LogUiState> = _uiState.asStateFlow()
 
     fun loadLogs() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            repository.getLogList().collect { result ->
-                result.onSuccess { logList ->
-                    val entries = logList.map { (date, info) ->
-                        LogEntry(
-                            date = date,
-                            filename = info["filename"] as? String ?: "$date.log",
-                            size = (info["size"] as? Number)?.toLong() ?: 0L
-                        )
-                    }
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        logs = entries
-                    )
-                }.onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = e.message ?: "加载日志列表失败"
-                    )
-                }
-            }
-        }
+        _uiState.value = LogUiState(
+            error = "日志管理功能需要后端支持，当前不可用"
+        )
     }
 
     fun loadLog(date: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null, selectedLog = date)
-            repository.getLog(date).collect { result ->
-                result.onSuccess { content ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        logContent = content
-                    )
-                }.onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = e.message ?: "加载日志内容失败"
-                    )
-                }
-            }
-        }
+        _uiState.value = _uiState.value.copy(
+            isLoading = false,
+            selectedLog = date,
+            error = "日志查看功能需要后端支持，当前不可用"
+        )
     }
 
     fun deleteLog(date: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null, deleteSuccess = false)
-            val result = repository.deleteLog(date)
-            result.onSuccess {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    deleteSuccess = true,
-                    selectedLog = "",
-                    logContent = ""
-                )
-                loadLogs()
-            }.onFailure { e ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message ?: "删除日志失败"
-                )
-            }
-        }
+        _uiState.value = _uiState.value.copy(
+            isLoading = false,
+            error = "日志删除功能需要后端支持，当前不可用"
+        )
     }
 
     fun clearSelection() {

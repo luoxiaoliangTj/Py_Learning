@@ -52,7 +52,6 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var tushareToken by remember { mutableStateOf(uiState.tushareToken) }
-    var backendUrl by remember { mutableStateOf(uiState.backendUrl) }
     var enableNotifications by remember { mutableStateOf(uiState.enableNotifications) }
     var enableDarkMode by remember { mutableStateOf(uiState.enableDarkMode) }
 
@@ -67,7 +66,7 @@ fun SettingsScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        viewModel.saveSettings(tushareToken, backendUrl, enableNotifications, enableDarkMode)
+                        viewModel.saveSettings(tushareToken, enableNotifications, enableDarkMode)
                     }) {
                         Icon(Icons.Default.Check, contentDescription = "保存")
                     }
@@ -95,14 +94,6 @@ fun SettingsScreen(
                     value = tushareToken,
                     onValueChange = { tushareToken = it },
                     label = { Text("Tushare Token") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = backendUrl,
-                    onValueChange = { backendUrl = it },
-                    label = { Text("后端地址") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
