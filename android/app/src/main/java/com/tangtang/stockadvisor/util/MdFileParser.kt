@@ -46,6 +46,9 @@ object MdFileParser {
         }
 
         if (headerLine == null) {
+            val capital = if (totalAssets > 0 || availableCash > 0) {
+                mapOf("total_capital" to totalAssets, "available_cash" to availableCash)
+            } else null
             return ParseResult(
                 holdings = emptyList(),
                 capital = capital,
@@ -69,6 +72,9 @@ object MdFileParser {
 
         // 检查必要列
         if ("name" !in colIndex || "shares" !in colIndex || "cost" !in colIndex) {
+            val capital = if (totalAssets > 0 || availableCash > 0) {
+                mapOf("total_capital" to totalAssets, "available_cash" to availableCash)
+            } else null
             return ParseResult(
                 holdings = emptyList(),
                 capital = capital,
