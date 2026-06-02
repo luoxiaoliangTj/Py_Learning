@@ -1,5 +1,8 @@
 package com.tangtang.stockadvisor.ui.screen
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -55,6 +59,15 @@ fun PortfolioScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    // SAF 文件选择器
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.importPortfolioFromUri(uri, context)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -65,39 +78,15 @@ fun PortfolioScreen(
                     }
                 },
                 actions = {
-                    // 扫描状态指示
-                    when (uiState.scanStatus) {
-                        ScanStatus.SCANNING -> {
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .padding(horizontal = 12.dp)
-                                    .height(24.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.White
-                            )
-                        }
-                        ScanStatus.SUCCESS -> {
-                            Text(
-                                text = "✓ 已同步",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            )
-                        }
-                        ScanStatus.ERROR -> {
-                            Text(
-                                text = "✗ 失败",
-                                color = Color(0xFFFF8A80),
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            )
-                        }
-                        ScanStatus.IDLE -> { /* 不显示 */ }
+                    // 刷新按钮（从本地JSON重新加载）
+                    IconButton(onClick = { viewModel.loadPortfolio(context) }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
                     }
+                    // 导入按钮（SAF选择.md文件）
                     IconButton(onClick = {
-                        viewModel.importFromMdFile(context)
+                        filePickerLauncher.launch(arrayOf("text/*"))
                     }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "刷新持仓")
+                        Icon(Icons.Default.FileOpen, contentDescription = "导入持仓")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -118,7 +107,7 @@ fun PortfolioScreen(
             ) {
                 CircularProgressIndicator()
             }
-        } else if (uiState.error != null) {
+        } else if (uiState.error != null && uiState.items.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -163,17 +152,17 @@ fun PortfolioScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "请在手机存储 /Documents/mindmaps/炒股/ 目录下放置持仓 .md 文件，然后点击刷新",
+                                text = "点击右上角 📂 按钮，选择持仓 .md 文件导入",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Button(onClick = {
-                                viewModel.importFromMdFile(context)
+                                filePickerLauncher.launch(arrayOf("text/*"))
                             }) {
-                                Icon(Icons.Default.Refresh, contentDescription = null)
+                                Icon(Icons.Default.Add, contentDescription = null)
                                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                                Text("扫描并导入")
+                                Text("选择 .md 文件")
                             }
                         }
                     }
@@ -308,7 +297,8 @@ fun PortfolioItemCard(
                     Text(
                         text = "$prefix${String.format("%.2f", item.profitLossPercent)}%",
                         color = plColor,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
