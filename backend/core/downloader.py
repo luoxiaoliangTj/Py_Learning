@@ -191,6 +191,85 @@ def _download_sohu(symbol: str, years: int):
         return False, None, f"搜狐财经下载失败: {e}"
 
 
+def _download_tushare(symbol: str, years: int):
+    """Download from Tushare (备用数据源，需要 token)."""
+    if not TUSHARE_AVAILABLE:
+        return False, None, "Tushare 未安装"
+    token = _get_tushare_token()
+    if not token:
+        return False, None, "未配置 Tushare Token"
+    try:
+        import tushare as ts_local
+        ts_local.set_token(token)
+        pro = ts_local.pro_api()
+        ts_code = f"{symbol}.SH" if symbol.startswith("6") else f"{symbol}.SZ"
+        end_date = datetime.now().strftime("%Y%m%d")
+        start_date = (datetime.now() - timedelta(days=years * 365)).strftime("%Y%m%d")
+        df = pro.daily(ts_code=ts_code, start_date=start_date, end_date=end_date)
+        if df is None or df.empty:
+            return False, None, "Tushare 返回空数据"
+        # 列名映射
+        column_mapping = {
+            "trade_date": "日期", "open": "开盘", "high": "最高",
+            "low": "最低", "close": "收盘", "vol": "成交量", "amount": "成交额",
+        }
+        df = df.rename(columns=column_mapping)
+        df["日期"] = pd.to_datetime(df["日期"], format="%Y%m%d")
+        available = [c for c in STANDARD_COLUMNS if c in df.columns]
+        df = df[available].copy()
+        df = df.sort_values("日期").reset_index(drop=True)
+        return True, df, "Tushare 下载成功"
+    except Exception as e:
+        return False, None, f"Tushare 下载失败: {e}"
+
+
+def _clean_data(df: pd.DataFrame) -> pd.DataFrame:
+    """数据清洗：处理缺失值和异常值（对齐原始代码 DailyDataDownloader._clean_data）."""
+    if df.empty:
+        return df
+    df = df.ffill().bfill()
+    # 3σ 原则处理价格异常值
+    for col in ["开盘", "最高", "最低", "收盘"]:
+        if col in df.columns:
+            mean = df[col].mean()
+            std = df[col].std()
+            if std > 0:
+                df[col] = df[col].apply(
+                    lambda x: mean if (x < mean - 3 * std or x > mean + 3 * std) else x
+                )
+    # IQR 处理成交量异常值
+    if "成交量" in df.columns:
+        q1 = df["成交量"].quantile(0.25)
+        q3 = df["成交量"].quantile(0.75)
+        iqr = q3 - q1
+        if iqr > 0:
+            lower = q1 - 1.5 * iqr
+            upper = q3 + 1.5 * iqr
+            median_vol = df["成交量"].median()
+            df["成交量"] = df["成交量"].apply(
+                lambda x: median_vol if (x < lower or x > upper) else x
+            )
+    return df
+
+
+def _validate_data(df: pd.DataFrame, symbol: str):
+    """数据验证（对齐原始代码 DailyDataDownloader.validate_data_quality）."""
+    checks = []
+    checks.append(("数据量", len(df) > 0, "没有数据"))
+    checks.append(("列完整性", set(STANDARD_COLUMNS).issubset(set(df.columns)), "缺少必要列"))
+    if "日期" in df.columns and len(df) > 1:
+        df_sorted = df.sort_values("日期")
+        date_gaps = (df_sorted["日期"].diff().dt.days > 5).sum()
+        checks.append(("日期连续性", date_gaps < len(df) * 0.5, f"发现 {date_gaps} 个较大日期间隔"))
+    if len(df) > 0:
+        for col in ["开盘", "最高", "最低", "收盘"]:
+            if col in df.columns:
+                checks.append((f"{col}合理性", (df[col] > 0).all(), f"存在无效{col}数据"))
+    passed = len(df) > 0 and all(c[1] for c in checks if c[0] != "数据量")
+    details = [f"{name}: {'通过' if ok else '失败 - ' + msg}" for name, ok, msg in checks]
+    return passed, "; ".join(details)
+
+
 def _save_data(df: pd.DataFrame, symbol: str) -> Optional[str]:
     """Save data to CSV file."""
     os.makedirs(DATA_DIR, exist_ok=True)
