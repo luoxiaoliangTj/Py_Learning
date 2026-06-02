@@ -73,7 +73,7 @@ class ToolsViewModel @Inject constructor(
                 val recordCount = response["record_count"] as? Int ?: 0
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    downloadStatus = if (success) "下载完成: $recordCount条记录 - $message" else "下载失败: $message"
+                    downloadStatus = if (success) "下载完成: ${recordCount}条记录 - $message" else "下载失败: $message"
                 )
             }.onFailure { e ->
                 _uiState.value = _uiState.value.copy(
