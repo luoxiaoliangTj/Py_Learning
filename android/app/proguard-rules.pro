@@ -27,9 +27,16 @@
 }
 
 # Gson
+-keepattributes Signature
 -keepclassmembers,allowobfuscation class * {
   @com.google.gson.annotations.SerializedName <fields>;
 }
+# Gson TypeToken — R8 会剥离泛型签名导致 TypeToken 报错
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+# Gson 对 PositionData / CapitalData 的序列化
+-keep class com.tangtang.stockadvisor.data.repository.PositionData { *; }
+-keep class com.tangtang.stockadvisor.data.repository.CapitalData { *; }
 
 # Room
 -keep class * extends androidx.room.RoomDatabase
