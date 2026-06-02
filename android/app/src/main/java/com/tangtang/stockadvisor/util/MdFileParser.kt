@@ -45,60 +45,78 @@ object MdFileParser {
             }
         }
 
-        if (headerLine != null) {
-            val headers = headerLine.split("|").drop(1).dropLast(1).map { it.trim() }
-            val colIndex = mutableMapOf<String, Int>()
-            for (i in headers.indices) {
-                when {
-                    "股票名称" in headers[i] -> colIndex["name"] = i
-                    "股票代码" in headers[i] -> colIndex["code"] = i
-                    "持仓" in headers[i] && "可用" in headers[i] -> colIndex["shares"] = i
-                    "成本价" in headers[i] -> colIndex["cost"] = i
+        if (headerLine == null) {
+            return ParseResult(
+                holdings = emptyList(),
+                capital = capital,
+                fileName = fileName,
+                errorMessage = "未找到持仓表格表头（需要包含'股票名称'和'市值'的行）"
+            )
+        }
+
+        // 解析表头列名
+        val headers = headerLine.split("|").drop(1).dropLast(1).map { it.trim() }
+        val colIndex = mutableMapOf<String, Int>()
+        for (i in headers.indices) {
+            val col = headers[i]
+            when {
+                "股票名称" in col -> colIndex["name"] = i
+                "股票代码" in col -> colIndex["code"] = i
+                "持仓/可用" in col || ("持仓" in col && "可用" in col) -> colIndex["shares"] = i
+                "成本价" in col -> colIndex["cost"] = i
+            }
+        }
+
+        // 检查必要列
+        if ("name" !in colIndex || "shares" !in colIndex || "cost" !in colIndex) {
+            return ParseResult(
+                holdings = emptyList(),
+                capital = capital,
+                fileName = fileName,
+                errorMessage = "表格缺少必要列。找到列: $colIndex，表头: $headers"
+            )
+        }
+
+        // 遍历数据行
+        for (line in lines) {
+            val trimmed = line.trim()
+            if (!trimmed.startsWith("|") || "---" in trimmed || trimmed == headerLine) continue
+
+            val cells = trimmed.split("|").drop(1).dropLast(1)
+            if (cells.size <= (colIndex.values.maxOrNull() ?: 0)) continue
+
+            val nameCell = cells[colIndex["name"]!!].trim()
+            val nameMatch = Regex("\\[\\[(.+?)\\]\\]").find(nameCell)
+            if (nameMatch == null) continue
+            val stockName = nameMatch.groupValues[1].trim()
+
+            var symbol: String? = null
+            if ("code" in colIndex) {
+                val codeCell = cells[colIndex["code"]!!].trim()
+                if (codeCell.isNotEmpty() && codeCell != "-" && codeCell != "N/A") {
+                    symbol = Regex("\\d+").find(codeCell)?.value
                 }
             }
 
-            if ("name" in colIndex && "shares" in colIndex && "cost" in colIndex) {
-                for (line in lines) {
-                    val trimmed = line.trim()
-                    if (!trimmed.startsWith("|") || "---" in trimmed || trimmed == headerLine) continue
+            val sharesCell = cells[colIndex["shares"]!!].trim()
+            val sharesPart = sharesCell.split("/")[0].trim()
+            val shares = cleanNumber(sharesPart).toInt()
 
-                    val cells = trimmed.split("|").drop(1).dropLast(1)
-                    if (cells.size <= (colIndex.values.maxOrNull() ?: 0)) continue
-
-                    val nameCell = cells[colIndex["name"]!!].trim()
-                    val nameMatch = Regex("\\[\\[(.+?)\\]\\]").find(nameCell)
-                    if (nameMatch == null) continue
-                    val stockName = nameMatch.groupValues[1].trim()
-
-                    var symbol: String? = null
-                    if ("code" in colIndex) {
-                        val codeCell = cells[colIndex["code"]!!].trim()
-                        if (codeCell.isNotEmpty() && codeCell != "-" && codeCell != "N/A") {
-                            symbol = Regex("\\d+").find(codeCell)?.value
-                        }
-                    }
-
-                    val sharesCell = cells[colIndex["shares"]!!].trim()
-                    val sharesPart = sharesCell.split("/")[0].trim()
-                    val shares = cleanNumber(sharesPart).toInt()
-
-                    val costCell = cells[colIndex["cost"]!!].trim()
-                    val costPrice = if (costCell == "-" || costCell.isEmpty() || "特殊" in costCell) {
-                        0.0
-                    } else {
-                        cleanNumber(costCell)
-                    }
-
-                    holdings.add(
-                        mapOf(
-                            "symbol" to (symbol ?: ""),
-                            "name" to stockName,
-                            "shares" to shares,
-                            "cost_price" to costPrice
-                        )
-                    )
-                }
+            val costCell = cells[colIndex["cost"]!!].trim()
+            val costPrice = if (costCell == "-" || costCell.isEmpty() || "特殊" in costCell) {
+                0.0
+            } else {
+                cleanNumber(costCell)
             }
+
+            holdings.add(
+                mapOf(
+                    "symbol" to (symbol ?: ""),
+                    "name" to stockName,
+                    "shares" to shares,
+                    "cost_price" to costPrice
+                )
+            )
         }
 
         val capital = if (totalAssets > 0 || availableCash > 0) {

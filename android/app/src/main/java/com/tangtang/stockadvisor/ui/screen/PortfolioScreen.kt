@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -58,6 +59,11 @@ fun PortfolioScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    // 进入页面时自动从本地JSON加载持仓
+    LaunchedEffect(Unit) {
+        viewModel.loadPortfolio(context)
+    }
 
     // SAF 文件选择器
     val filePickerLauncher = rememberLauncherForActivityResult(

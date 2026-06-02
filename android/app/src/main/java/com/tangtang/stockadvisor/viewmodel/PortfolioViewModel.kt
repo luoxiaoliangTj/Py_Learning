@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.tangtang.stockadvisor.data.repository.CapitalData
 import com.tangtang.stockadvisor.data.repository.PositionData
 import com.tangtang.stockadvisor.data.repository.StockRepository
+import com.tangtang.stockadvisor.data.remote.StockCodeMapper
 import com.tangtang.stockadvisor.util.MdFileParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +53,8 @@ enum class ScanStatus {
 
 @HiltViewModel
 class PortfolioViewModel @Inject constructor(
-    private val repository: StockRepository
+    private val repository: StockRepository,
+    private val codeMapper: StockCodeMapper
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PortfolioUiState())
@@ -116,19 +118,29 @@ class PortfolioViewModel @Inject constructor(
      */
     fun importPortfolioFromUri(uri: Uri, context: Context) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, importMessage = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, importMessage = null, error = null)
             try {
                 // 1. 读取文件内容
                 val content = withContext(Dispatchers.IO) {
-                    val inputStream = context.contentResolver.openInputStream(uri)
-                    val reader = BufferedReader(InputStreamReader(inputStream))
-                    reader.readText().also { reader.close() }
+                    try {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                            ?: throw Exception("无法打开文件，请重新选择")
+                        val reader = BufferedReader(InputStreamReader(inputStream))
+                        reader.readText().also { reader.close() }
+                    } catch (e: Exception) {
+                        throw Exception("文件读取失败: ${e.message}")
+                    }
                 }
+
+                Log.d("PortfolioImport", "文件内容长度: ${content.length}")
+                Log.d("PortfolioImport", "文件前200字符: ${content.take(200)}")
 
                 // 2. 解析 .md 文件
                 val parseResult = withContext(Dispatchers.Default) {
                     MdFileParser.parseContent(content)
                 }
+
+                Log.d("PortfolioImport", "解析结果: holdings=${parseResult.holdings.size}, error=${parseResult.errorMessage}")
 
                 if (parseResult.holdings.isEmpty()) {
                     _uiState.value = _uiState.value.copy(
@@ -149,7 +161,9 @@ class PortfolioViewModel @Inject constructor(
                 }
 
                 val existingPositions = repository.loadPositionsFromLocal(context)
-                val matchedPositions = performCodeMatching(rawHoldings, existingPositions)
+                // 确保 StockCodeMapper 已初始化
+                try { codeMapper.init(context) } catch (e: Exception) { Log.w("Portfolio", "CodeMapper init: ${e.message}") }
+                val matchedPositions = performCodeMatching(rawHoldings, existingPositions, codeMapper)
 
                 // 4. 写本地JSON
                 repository.savePositionsToLocal(context, matchedPositions)
@@ -183,10 +197,16 @@ class PortfolioViewModel @Inject constructor(
 
     /**
      * 5级代码匹配（对齐 position_manager_tool.py）
+     * 第1级：文件中的股票代码列
+     * 第2级：现有持仓精确匹配名称
+     * 第3级：现有持仓模糊匹配
+     * 第4级：本地映射表（StockCodeMapper）
+     * 第5级：跳过
      */
     private fun performCodeMatching(
         rawHoldings: List<RawHolding>,
-        existingPositions: Map<String, PositionData>
+        existingPositions: Map<String, PositionData>,
+        codeMapper: StockCodeMapper?
     ): Map<String, PositionData> {
         val result = mutableMapOf<String, PositionData>()
         val fileNames = rawHoldings.map { it.name }.toSet()
@@ -215,7 +235,15 @@ class PortfolioViewModel @Inject constructor(
                 finalSymbol = fuzzyMatchName(raw.name, existingPositions)
             }
 
-            // 第4-5级：跳过
+            // 第4级：本地映射表（StockCodeMapper）
+            if (finalSymbol == null && codeMapper != null) {
+                finalSymbol = codeMapper.getCodeByName(raw.name)
+                if (finalSymbol != null) {
+                    Log.d("Portfolio", "第4级匹配: '${raw.name}' -> $finalSymbol")
+                }
+            }
+
+            // 第5级：跳过
             if (finalSymbol == null) {
                 Log.w("Portfolio", "跳过 '${raw.name}'：无代码且无法匹配")
                 continue
