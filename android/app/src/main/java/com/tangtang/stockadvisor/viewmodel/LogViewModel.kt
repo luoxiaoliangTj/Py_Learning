@@ -81,21 +81,20 @@ class LogViewModel @Inject constructor(
     fun deleteLog(date: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null, deleteSuccess = false)
-            repository.deleteLog(date).collect { result ->
-                result.onSuccess {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        deleteSuccess = true,
-                        selectedLog = "",
-                        logContent = ""
-                    )
-                    loadLogs()
-                }.onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = e.message ?: "删除日志失败"
-                    )
-                }
+            val result = repository.deleteLog(date)
+            result.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    deleteSuccess = true,
+                    selectedLog = "",
+                    logContent = ""
+                )
+                loadLogs()
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "删除日志失败"
+                )
             }
         }
     }
