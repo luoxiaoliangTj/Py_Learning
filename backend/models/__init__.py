@@ -86,3 +86,10 @@ class StrategyInfo(BaseModel):
     metrics: dict = Field(default_factory=dict, description="策略指标")
     source: str = Field("手动", description="来源")
     last_updated: Optional[str] = Field(None, description="最后更新时间")
+
+
+class ChartRequest(BaseModel):
+    """图表生成请求"""
+    symbol: str = Field(..., description="股票代码，如 000001", min_length=6, max_length=6)
+    strategy_type: str = Field("channel", description="策略类型: channel 或 trend")
+    params: Optional[dict] = Field(None, description="策略参数，如 {\"k\": 2.0}")

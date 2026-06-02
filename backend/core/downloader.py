@@ -1,6 +1,9 @@
 """
 Daily data downloader - wraps the download logic.
 Ported from Tools/daily_downloader.py
+
+数据源优先级: 新浪(主) → 搜狐(备) → Tushare(备)
+无 Tushare Token 时自动降级到新浪+搜狐
 """
 import os
 import sys
@@ -10,46 +13,94 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional
-from .config import DATA_DIR, TUSHARE_TOKEN
+from .config import DATA_DIR
+
+# 尝试导入Tushare
+try:
+    import tushare as ts
+    TUSHARE_AVAILABLE = True
+except ImportError:
+    TUSHARE_AVAILABLE = False
 
 STANDARD_COLUMNS = ["日期", "开盘", "最高", "最低", "收盘", "成交量", "成交额"]
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 ]
 
 
-def download_daily_data(symbol: str, years: int = 8, source: str = "auto") -> dict:
+def _get_tushare_token() -> str:
+    """从 token/tushare_token.txt 加载 Tushare Token（对齐原始代码逻辑）"""
+    token_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "token", "tushare_token.txt")
+    if os.path.exists(token_file):
+        with open(token_file, 'r', encoding='utf-8') as f:
+            token = f.read().strip()
+            if token:
+                return token
+    return ""
+
+
+def download_daily_data(symbol: str, years: int = 8, source: str = "auto", max_retries: int = 3) -> dict:
     """
     Download daily data for a symbol.
-    Returns {"success": bool, "message": str, "rows": int, "file": str}
+    数据源自动降级: 新浪 → 搜狐 → Tushare
+    Returns {"success": bool, "message": str, "rows": int, "file": str, "source": str}
     """
     if not symbol or not symbol.isdigit() or len(symbol) != 6:
-        return {"success": False, "message": "股票代码必须是6位数字", "rows": 0, "file": ""}
+        return {"success": False, "message": "股票代码必须是6位数字", "rows": 0, "file": "", "source": ""}
 
-    sources = ["sina", "sohu"] if source == "auto" else [source]
+    # 构建数据源列表
+    sources = []
+    if source == "auto":
+        sources = ["sina", "sohu"]
+        # Tushare 作为第三优先级（如果有 token）
+        tushare_token = _get_tushare_token()
+        if TUSHARE_AVAILABLE and tushare_token:
+            sources.append("tushare")
+    else:
+        if source == "tushare" and (not TUSHARE_AVAILABLE or not _get_tushare_token()):
+            return {"success": False, "message": "Tushare 不可用或未配置 Token", "rows": 0, "file": "", "source": ""}
+        sources = [source]
 
+    last_error = ""
     for src in sources:
-        if src == "sina":
-            success, df, msg = _download_sina(symbol, years)
-        elif src == "sohu":
-            success, df, msg = _download_sohu(symbol, years)
-        else:
-            continue
+        for attempt in range(max_retries):
+            try:
+                if src == "sina":
+                    success, df, msg = _download_sina(symbol, years)
+                elif src == "sohu":
+                    success, df, msg = _download_sohu(symbol, years)
+                elif src == "tushare":
+                    success, df, msg = _download_tushare(symbol, years)
+                else:
+                    continue
 
-        if success and df is not None and not df.empty:
-            fpath = _save_data(df, symbol)
-            if fpath:
-                return {
-                    "success": True,
-                    "message": f"{msg} | 数据质量验证通过",
-                    "rows": len(df),
-                    "file": str(fpath),
-                    "source": src,
-                }
+                if success and df is not None and not df.empty:
+                    # 数据清洗
+                    df = _clean_data(df)
+                    # 数据验证
+                    valid, validate_msg = _validate_data(df, symbol)
+                    if not valid:
+                        last_error = f"{src} 数据验证失败: {validate_msg}"
+                        continue
+                    # 保存
+                    fpath = _save_data(df, symbol)
+                    if fpath:
+                        return {
+                            "success": True,
+                            "message": f"{msg} | 数据验证通过",
+                            "rows": len(df),
+                            "file": str(fpath),
+                            "source": src,
+                        }
+                last_error = msg
+            except Exception as e:
+                last_error = f"{src} 尝试 {attempt+1}/{max_retries} 失败: {e}"
+            time.sleep(1)
 
-    return {"success": False, "message": "所有数据源均失败", "rows": 0, "file": ""}
+    return {"success": False, "message": f"所有数据源均失败: {last_error}", "rows": 0, "file": "", "source": ""}
 
 
 def _download_sina(symbol: str, years: int):

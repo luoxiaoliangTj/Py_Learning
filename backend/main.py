@@ -13,6 +13,9 @@ from api.tools import router as tools_router
 from api.token import router as token_router
 from api.strategy_db import router as strategy_db_router
 from api.logs import router as logs_router
+from api.realtime import router as realtime_router
+from api.chart import router as chart_router
+from api.advice import router as advice_router
 
 app = FastAPI(
     title="股票策略回测与预测系统",
@@ -37,6 +40,9 @@ app.include_router(tools_router)
 app.include_router(token_router)
 app.include_router(strategy_db_router)
 app.include_router(logs_router)
+app.include_router(realtime_router)
+app.include_router(chart_router)
+app.include_router(advice_router)
 
 
 @app.get("/", summary="服务状态", tags=["根路径"])

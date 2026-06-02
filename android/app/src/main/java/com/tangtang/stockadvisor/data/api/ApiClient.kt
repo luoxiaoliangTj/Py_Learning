@@ -69,6 +69,18 @@ class ApiClient @Inject constructor(
         }
     }
 
+    private suspend fun delete(path: String): String = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url(baseUrl + path)
+            .delete()
+            .addHeader("Accept", "application/json")
+            .build()
+        client.newCall(request).execute().use { response ->
+            val body = response.body ?: throw Exception("Empty response body")
+            body.string()
+        }
+    }
+
     private inline fun <reified T> parseResponse(json: String): T {
         return gson.fromJson(json, T::class.java)
     }
