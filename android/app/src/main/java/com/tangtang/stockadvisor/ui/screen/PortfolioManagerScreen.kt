@@ -209,7 +209,7 @@ fun PortfolioManagerScreen(
                                     showEditDialog = true
                                 },
                                 onDelete = {
-                                viewModel.deletePosition(item.code, context)
+                                    viewModel.deletePosition(item.code, context)
                                 }
                             )
                         }

@@ -150,8 +150,9 @@ class PortfolioViewModel @Inject constructor(
                     return@launch
                 }
 
-                // 3. 5级代码匹配
-                val matchedPositions = performCodeMatching(rawHoldings, context)
+                // 3. 加载现有持仓 + 5级代码匹配
+                val existingPositions = repository.loadPositionsFromLocal(context)
+                val matchedPositions = performCodeMatching(rawHoldings, existingPositions)
 
                 // 4. 写本地JSON
                 repository.savePositionsToLocal(context, matchedPositions)
@@ -231,8 +232,9 @@ class PortfolioViewModel @Inject constructor(
                     )
                 }
 
-                // 3. 5级代码匹配
-                val matchedPositions = performCodeMatching(rawHoldings, context)
+                // 3. 加载现有持仓 + 5级代码匹配
+                val existingPositions = repository.loadPositionsFromLocal(context)
+                val matchedPositions = performCodeMatching(rawHoldings, existingPositions)
 
                 // 4. 写本地JSON
                 repository.savePositionsToLocal(context, matchedPositions)
@@ -266,12 +268,12 @@ class PortfolioViewModel @Inject constructor(
     /**
      * 5级代码匹配
      * 对齐 position_manager_tool.py 的 import_from_latest_md() 方法
+     * existingPositions 由调用方在协程中加载后传入
      */
     private fun performCodeMatching(
         rawHoldings: List<RawHolding>,
-        context: Context
+        existingPositions: Map<String, PositionData>
     ): Map<String, PositionData> {
-        val existingPositions = repository.loadPositionsFromLocal(context)
         val result = mutableMapOf<String, PositionData>()
         val fileNames = rawHoldings.map { it.name }.toSet()
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
@@ -485,7 +487,7 @@ class PortfolioViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val result = repository.addOrUpdatePosition(symbol, name, shares, costPrice, context)
+                val result = repository.addOrUpdatePosition(context, symbol, name, shares, costPrice)
                 result.onSuccess {
                     loadPortfolio(context)
                 }.onFailure { e ->
@@ -507,7 +509,7 @@ class PortfolioViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val result = repository.deletePosition(symbol, context)
+                val result = repository.deletePosition(context, symbol)
                 result.onSuccess {
                     loadPortfolio(context)
                 }.onFailure { e ->
