@@ -131,7 +131,7 @@ fun PortfolioScreen(
                         color = MaterialTheme.colorScheme.error
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    androidx.compose.material3.TextButton(onClick = { viewModel.loadPortfolio() }) {
+                    androidx.compose.material3.TextButton(onClick = { viewModel.loadPortfolio(context) }) {
                         Text("重试")
                     }
                 }

@@ -85,7 +85,7 @@ fun PortfolioManagerScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.loadPortfolio()
+        viewModel.loadPortfolio(context)
     }
 
     Scaffold(
@@ -98,7 +98,7 @@ fun PortfolioManagerScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.loadPortfolio() }) {
+                    IconButton(onClick = { viewModel.loadPortfolio(context) }) {
                         Icon(Icons.Default.Refresh, contentDescription = "刷新")
                     }
                     IconButton(onClick = {
@@ -146,7 +146,7 @@ fun PortfolioManagerScreen(
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { viewModel.loadPortfolio() }) {
+                        Button(onClick = { viewModel.loadPortfolio(context) }) {
                             Text("重试")
                         }
                     }
@@ -209,7 +209,7 @@ fun PortfolioManagerScreen(
                                     showEditDialog = true
                                 },
                                 onDelete = {
-                                    viewModel.deletePosition(item.code)
+                                viewModel.deletePosition(item.code, context)
                                 }
                             )
                         }
@@ -224,7 +224,7 @@ fun PortfolioManagerScreen(
         AddPositionDialog(
             onDismiss = { showAddDialog = false },
             onConfirm = { symbol, name, shares, cost ->
-                viewModel.addOrUpdatePosition(symbol, name, shares, cost)
+                viewModel.addOrUpdatePosition(symbol, name, shares, cost, context)
                 showAddDialog = false
             }
         )
@@ -239,7 +239,7 @@ fun PortfolioManagerScreen(
                 editingItem = null
             },
             onConfirm = { symbol, name, shares, cost ->
-                viewModel.addOrUpdatePosition(symbol, name, shares, cost)
+                viewModel.addOrUpdatePosition(symbol, name, shares, cost, context)
                 showEditDialog = false
                 editingItem = null
             }
@@ -255,7 +255,7 @@ fun PortfolioManagerScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.clearAllPositions()
+                        viewModel.clearAllPositions(context)
                         showClearDialog = false
                     }
                 ) {
