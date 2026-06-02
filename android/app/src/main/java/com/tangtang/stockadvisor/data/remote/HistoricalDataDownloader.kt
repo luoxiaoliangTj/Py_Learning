@@ -13,9 +13,10 @@ import okhttp3.Request
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
-import java.io.FileWriter
+import java.io.FileOutputStream
+import java.io.OutputStreamWriter
 import java.io.BufferedReader
-import java.io.FileReader
+import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -574,7 +575,7 @@ class HistoricalDataDownloader @Inject constructor(
     private fun saveCsv(symbol: String, records: List<Map<String, String>>): File? {
         return try {
             val file = getCsvFile(symbol)
-            FileWriter(file, Charsets.UTF_8).use { writer ->
+            java.io.OutputStreamWriter(java.io.FileOutputStream(file), Charsets.UTF_8).use { writer ->
                 // 写BOM头（方便Excel打开）
                 writer.write("\uFEFF")
                 // 写表头
@@ -604,7 +605,7 @@ class HistoricalDataDownloader @Inject constructor(
      */
     private fun readCsv(file: File): List<Map<String, String>> {
         val records = mutableListOf<Map<String, String>>()
-        BufferedReader(FileReader(file, Charsets.UTF_8)).use { reader ->
+        BufferedReader(java.io.InputStreamReader(java.io.FileInputStream(file), Charsets.UTF_8)).use { reader ->
             var line = reader.readLine() ?: return records
 
             // 跳过BOM
