@@ -15,7 +15,7 @@ data class KlineData(
 
 /**
  * 技术指标计算库
- * 所有指标接收 List<KlineData> 或 List<Double> 作为输入，返回 List<Double>。
+ * 所有指标接收 List<Double> 作为输入（K线相关指标需先用 closes() 提取收盘价），返回 List<Double>。
  * 返回列表长度与输入一致，前 period-1 个位置填充 NaN 表示数据不足。
  */
 object TechnicalIndicators {
@@ -53,12 +53,6 @@ object TechnicalIndicators {
         return result
     }
 
-    /**
-     * 针对 K 线的 SMA 便捷方法
-     */
-    fun sma(klines: List<KlineData>, period: Int): List<Double> =
-        sma(closes(klines), period)
-
     // ======================== EMA ========================
 
     /**
@@ -90,12 +84,6 @@ object TechnicalIndicators {
         }
         return result
     }
-
-    /**
-     * 针对 K 线的 EMA 便捷方法
-     */
-    fun ema(klines: List<KlineData>, period: Int): List<Double> =
-        ema(closes(klines), period)
 
     // ======================== 标准差 ========================
 
@@ -162,15 +150,6 @@ object TechnicalIndicators {
         return Triple(upper, middle, lower)
     }
 
-    /**
-     * 针对 K 线的布林带便捷方法
-     */
-    fun bollinger(
-        klines: List<KlineData>,
-        period: Int = 20
-    ): Triple<List<Double>, List<Double>, List<Double>> =
-        bollinger(closes(klines), period)
-
     // ======================== RSI ========================
 
     /**
@@ -230,12 +209,6 @@ object TechnicalIndicators {
 
         return result
     }
-
-    /**
-     * 针对 K 线的 RSI 便捷方法
-     */
-    fun rsi(klines: List<KlineData>, period: Int = 14): List<Double> =
-        rsi(closes(klines), period)
 
     // ======================== MACD ========================
 
@@ -303,12 +276,6 @@ object TechnicalIndicators {
 
         return Triple(dif, deaResult, histogram)
     }
-
-    /**
-     * 针对 K 线的 MACD 便捷方法
-     */
-    fun macd(klines: List<KlineData>): Triple<List<Double>, List<Double>, List<Double>> =
-        macd(closes(klines))
 
     // ======================== ATR ========================
 
