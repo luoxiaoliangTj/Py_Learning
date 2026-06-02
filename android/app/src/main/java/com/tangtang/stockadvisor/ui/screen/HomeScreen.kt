@@ -205,20 +205,43 @@ fun HomeScreen(
                         )
                     }
                 }
-            } else if (uiState.error != null && uiState.marketStocks.isEmpty()) {
-                // 首次加载失败
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+            } else if (uiState.marketStocks.isEmpty() && uiState.error != null) {
+                // 后端未连接：显示空列表 + 提示卡片（不阻塞）
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = uiState.error ?: "未知错误",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { viewModel.loadStockList() }) {
-                            Text("重试")
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = "⚠️ 后端未连接",
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = uiState.error ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "✅ 持仓管理可正常使用（导入 .md 文件）\n❌ 预测/策略/回测需要后端支持",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(onClick = { viewModel.loadStockList() }) {
+                                    Text("重试连接")
+                                }
+                            }
                         }
                     }
                 }

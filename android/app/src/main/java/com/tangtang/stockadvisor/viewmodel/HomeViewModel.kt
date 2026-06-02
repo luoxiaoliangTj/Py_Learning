@@ -42,9 +42,11 @@ class HomeViewModel @Inject constructor(
                         marketStocks = stocks
                     )
                 }.onFailure { e ->
+                    // 后端未连接时不报错，只显示空列表+提示
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = e.message ?: "加载股票列表失败"
+                        marketStocks = emptyList(),
+                        error = "后端未连接（${e.message ?: "未知错误"}）\n部分功能需要后端支持，可在设置中配置"
                     )
                 }
             }
