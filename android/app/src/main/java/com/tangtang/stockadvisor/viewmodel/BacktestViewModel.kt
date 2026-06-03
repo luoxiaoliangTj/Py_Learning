@@ -80,7 +80,7 @@ class BacktestViewModel @Inject constructor(
                     Log.i(TAG, "下载成功: ${downloadResult.recordCount}条，来源: ${downloadResult.source}")
 
                     // 优先使用下载时已有的数据，避免二次读取CSV
-                    val records: List<Map<String, String>> = if (downloadResult.records != null && downloadResult.records.isNotEmpty()) {
+                    if (downloadResult.records != null && downloadResult.records.isNotEmpty()) {
                         Log.i(TAG, "使用下载时已有的数据: ${downloadResult.records.size}条")
                         downloadResult.records
                     } else {
