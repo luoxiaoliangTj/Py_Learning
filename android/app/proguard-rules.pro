@@ -6,7 +6,7 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Keep Retrofit models
--keep class com.tangtang.stockadvisor.data.model.** { *; }
+-keep class com.tangtang.aico.data.model.** { *; }
 
 # Keep Hilt
 -keep class dagger.hilt.** { *; }
@@ -35,8 +35,8 @@
 -keep class com.google.gson.reflect.TypeToken { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
 # Gson 对 PositionData / CapitalData 的序列化
--keep class com.tangtang.stockadvisor.data.repository.PositionData { *; }
--keep class com.tangtang.stockadvisor.data.repository.CapitalData { *; }
+-keep class com.tangtang.aico.data.repository.PositionData { *; }
+-keep class com.tangtang.aico.data.repository.CapitalData { *; }
 
 # Room
 -keep class * extends androidx.room.RoomDatabase

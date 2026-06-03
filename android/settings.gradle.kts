@@ -15,5 +15,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "StockAdvisor"
+rootProject.name = "AICo"
 include(":app")

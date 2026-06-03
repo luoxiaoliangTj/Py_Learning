@@ -9,13 +9,13 @@ plugins {
 }
 
 android {
-    namespace = "com.tangtang.stockadvisor"
+    namespace = "com.tangtang.aico"
     compileSdk = 34
     buildToolsVersion = "34.0.0"
     ndkVersion = "25.2.9519653"
 
     defaultConfig {
-        applicationId = "com.tangtang.stockadvisor"
+        applicationId = "com.tangtang.aico"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
