@@ -30,7 +30,14 @@ data class BacktestUiState(
     val finalCapital: Double = 0.0,
     val initialCapital: Double = 100000.0,
     val error: String? = null,
-    val equityCurve: List<Pair<String, Double>> = emptyList()
+    val equityCurve: List<Pair<String, Double>> = emptyList(),
+    // 数据下载配置
+    val dataSource: String = "sina",
+    val dataYears: Int = 8,
+    // 策略详情
+    val strategyDetail: String = "",
+    val pluginName: String = "atr_channel",
+    val downloadMessage: String? = null
 )
 
 @HiltViewModel
@@ -46,7 +53,14 @@ class BacktestViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BacktestUiState())
     val uiState: StateFlow<BacktestUiState> = _uiState.asStateFlow()
 
-    fun runBacktest(symbol: String, strategyType: String = "channel", initialCapital: Double = 100000.0) {
+    fun runBacktest(
+        symbol: String,
+        strategyType: String = "channel",
+        initialCapital: Double = 100000.0,
+        dataSource: String = "sina",
+        dataYears: Int = 8,
+        pluginName: String = "atr_channel"
+    ) {
         // 防止重复调用
         if (_uiState.value.isLoading && _uiState.value.symbol == symbol) {
             Log.w(TAG, "回测进行中，忽略重复请求: $symbol/$strategyType")
@@ -58,12 +72,15 @@ class BacktestViewModel @Inject constructor(
                 symbol = symbol,
                 strategyType = strategyType,
                 isLoading = true,
-                initialCapital = initialCapital
+                initialCapital = initialCapital,
+                dataSource = dataSource,
+                dataYears = dataYears,
+                pluginName = pluginName
             )
 
             try {
                 // Step 1: Download K-line data
-                Log.i(TAG, "开始回测 $symbol，策略: $strategyType")
+                Log.i(TAG, "开始回测 $symbol，策略: $strategyType, 数据源: $dataSource, 年数: $dataYears")
 
                 val existingCheck = withContext(Dispatchers.IO) {
                     historicalDataDownloader.checkExistingData(symbol)
@@ -74,11 +91,11 @@ class BacktestViewModel @Inject constructor(
                     existingCheck.details ?: emptyList()
                 } else {
                     Log.i(TAG, "下载历史数据... (本地数据: exists=${existingCheck.exists}, count=${existingCheck.recordCount})")
-                    val downloadResult = historicalDataDownloader.downloadDailyData(symbol)
+                    val downloadResult = historicalDataDownloader.downloadDailyData(symbol, dataYears, dataSource)
                     if (!downloadResult.success) {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            error = "数据下载失败: ${downloadResult.message}\n\n建议：\n1. 检查网络连接\n2. 在「工具箱」→「下载日线数据」中手动下载\n3. 稍后再试"
+                            error = "数据下载失败: ${downloadResult.message}\n\n建议：\n1. 检查网络连接\n2. 切换数据源后重试\n3. 稍后再试"
                         )
                         return@launch
                     }
@@ -107,7 +124,7 @@ class BacktestViewModel @Inject constructor(
                 if (records.isEmpty()) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "未获取到有效K线数据\n\n建议：\n1. 检查股票代码是否正确 ($symbol)\n2. 在「工具箱」中手动下载日线数据\n3. 稍后再试"
+                        error = "未获取到有效K线数据\n\n建议：\n1. 检查股票代码是否正确 ($symbol)\n2. 切换数据源后重试"
                     )
                     return@launch
                 }
@@ -119,7 +136,7 @@ class BacktestViewModel @Inject constructor(
                 if (klines.size < 25) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "数据不足: 需要至少25根K线，当前仅${klines.size}根\n\n建议：在「工具箱」中下载更多历史数据"
+                        error = "数据不足: 需要至少25根K线，当前仅${klines.size}根\n\n建议：增加下载年数或切换数据源"
                     )
                     return@launch
                 }
@@ -131,12 +148,12 @@ class BacktestViewModel @Inject constructor(
                 }
 
                 val params = when (engineStrategyType) {
-                    BacktestEngine.StrategyType.CHANNEL -> mapOf("plugin" to "atr_channel", "k" to 2.0)
+                    BacktestEngine.StrategyType.CHANNEL -> mapOf("plugin" to pluginName, "k" to 2.0)
                     BacktestEngine.StrategyType.TREND -> mapOf("fastPeriod" to 10, "slowPeriod" to 30)
                 }
 
                 // Step 4: Run backtest
-                Log.i(TAG, "执行回测: ${klines.size}条K线, 策略=$strategyType, 初始资金=$initialCapital")
+                Log.i(TAG, "执行回测: ${klines.size}条K线, 策略=$strategyType, 插件=$pluginName, 初始资金=$initialCapital")
                 val result = BacktestEngine.runBacktest(
                     klines = klines,
                     strategyType = engineStrategyType,
@@ -146,7 +163,19 @@ class BacktestViewModel @Inject constructor(
 
                 Log.i(TAG, "回测完成: 总收益=${result.totalReturn}, 年化=${result.annualReturn}, 最大回撤=${result.maxDrawdown}, 交易次数=${result.totalTrades}")
 
-                // Step 5: Display results
+                // Step 5: Build strategy detail string
+                val strategyDetail = buildString {
+                    append("策略: ${if (strategyType == "channel") "通道策略" else "趋势策略"}")
+                    if (strategyType == "channel") {
+                        append(" | 插件: $pluginName")
+                    } else {
+                        append(" | MA(10/30)")
+                    }
+                    append(" | 数据源: ${dataSourceLabel(dataSource)}")
+                    append(" | ${dataYears}年 | ${klines.size}条K线")
+                }
+
+                // Step 6: Display results
                 _uiState.value = BacktestUiState(
                     symbol = symbol,
                     stockName = symbol,
@@ -166,7 +195,11 @@ class BacktestViewModel @Inject constructor(
                     } catch (e: Exception) {
                         Log.w(TAG, "权益曲线转换失败: ${e.message}")
                         emptyList()
-                    }
+                    },
+                    dataSource = dataSource,
+                    dataYears = dataYears,
+                    pluginName = pluginName,
+                    strategyDetail = strategyDetail
                 )
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e // 不吞掉 CancellationException
@@ -178,6 +211,14 @@ class BacktestViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun dataSourceLabel(source: String): String = when (source) {
+        "sina" -> "新浪财经"
+        "sohu" -> "搜狐财经"
+        "tushare" -> "Tushare"
+        "all" -> "自动选择"
+        else -> source
     }
 
     /**

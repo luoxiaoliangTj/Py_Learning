@@ -68,10 +68,25 @@ class HistoricalDataDownloader @Inject constructor(
      */
     suspend fun downloadDailyData(
         symbol: String,
-        years: Int = 8
+        years: Int = 8,
+        dataSource: String = "all"
     ): DownloadResult = withContext(Dispatchers.IO) {
-        Log.i(TAG, "开始下载 $symbol 的 ${years}年 日线数据...")
+        Log.i(TAG, "开始下载 $symbol 的 ${years}年 日线数据... (数据源: $dataSource)")
         val errors = mutableListOf<String>()
+
+        // 根据数据源选择下载策略
+        when (dataSource) {
+            "sina" -> {
+                return@withContext tryDownloadFrom(symbol, years, "新浪", ::downloadFromSina, errors)
+            }
+            "sohu" -> {
+                return@withContext tryDownloadFrom(symbol, years, "搜狐", ::downloadFromSohu, errors)
+            }
+            "tushare" -> {
+                return@withContext tryDownloadFrom(symbol, years, "Tushare", ::downloadFromTushare, errors)
+            }
+            else -> { /* all - 继续走三级降级 */ }
+        }
 
         // 1. 尝试新浪
         try {
@@ -106,7 +121,7 @@ class HistoricalDataDownloader @Inject constructor(
             Log.w(TAG, "新浪下载失败: ${e.message}")
         }
 
-        delay(500) // 请求间隔
+        delay(500)
 
         // 2. 尝试搜狐
         try {
@@ -143,7 +158,7 @@ class HistoricalDataDownloader @Inject constructor(
 
         delay(500)
 
-        // 3. 尝试Tushare（需要token）
+        // 3. 尝试Tushare
         try {
             val tushareResult = downloadFromTushare(symbol, years)
             if (tushareResult.isNotEmpty()) {
@@ -183,6 +198,53 @@ class HistoricalDataDownloader @Inject constructor(
             recordCount = 0,
             filePath = null,
             message = "所有数据源均下载失败:\n${errors.joinToString("\n")}\n\n建议：\n1. 检查网络连接\n2. 确认股票代码正确($symbol)\n3. 稍后再试"
+        )
+    }
+
+    /** 单数据源下载辅助方法 */
+    private suspend fun tryDownloadFrom(
+        symbol: String,
+        years: Int,
+        sourceName: String,
+        downloadFn: suspend (String, Int) -> List<Map<String, String>>,
+        errors: MutableList<String>
+    ): DownloadResult {
+        try {
+            val result = downloadFn(symbol, years)
+            if (result.isNotEmpty()) {
+                val cleaned = cleanData(result)
+                val validated = validateData(cleaned, symbol)
+                if (validated.isValid) {
+                    val file = saveCsv(symbol, cleaned)
+                    if (file != null) {
+                        Log.i(TAG, "$sourceName 下载成功: ${cleaned.size}条记录 → ${file.absolutePath}")
+                        return DownloadResult(
+                            success = true,
+                            source = sourceName.lowercase(),
+                            recordCount = cleaned.size,
+                            filePath = file.absolutePath,
+                            message = "$sourceName 下载成功，${cleaned.size}条记录",
+                            records = cleaned
+                        )
+                    } else {
+                        errors.add("$sourceName: CSV保存失败")
+                    }
+                } else {
+                    errors.add("$sourceName: 数据验证失败(${validated.details})")
+                }
+            } else {
+                errors.add("$sourceName: 返回空数据")
+            }
+        } catch (e: Exception) {
+            errors.add("$sourceName: ${e.message}")
+            Log.w(TAG, "$sourceName 下载失败: ${e.message}")
+        }
+        return DownloadResult(
+            success = false,
+            source = "none",
+            recordCount = 0,
+            filePath = null,
+            message = "$sourceName 下载失败\n\n建议：\n1. 检查网络连接\n2. 尝试其他数据源\n3. 稍后再试"
         )
     }
 
