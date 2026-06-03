@@ -38,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,8 +66,8 @@ fun BacktestScreen(
     // 本地策略选择状态
     var selectedStrategy by remember { mutableStateOf("channel") }
 
-    // 初始加载回测数据
-    LaunchedEffect(symbol) {
+    // 初始加载回测数据，策略切换时重新回测
+    LaunchedEffect(symbol, selectedStrategy) {
         viewModel.runBacktest(symbol, selectedStrategy)
     }
 
@@ -177,9 +176,7 @@ fun BacktestScreen(
 
                         // 权益曲线图（MPAndroidChart LineChart）
                         EquityCurveCard(
-                            totalReturn = uiState.totalReturn,
-                            annualReturn = uiState.annualReturn,
-                            maxDrawdown = uiState.maxDrawdown
+                            equityCurve = uiState.equityCurve
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -372,9 +369,7 @@ fun MetricItem(label: String, value: String) {
  */
 @Composable
 fun EquityCurveCard(
-    totalReturn: Double,
-    annualReturn: Double,
-    maxDrawdown: Double
+    equityCurve: List<Pair<String, Double>>
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -386,63 +381,82 @@ fun EquityCurveCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 使用 AndroidView 嵌入 MPAndroidChart LineChart
-            val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
-            val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant.toArgb()
+            if (equityCurve.isEmpty()) {
+                Text(
+                    text = "暂无权益曲线数据",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                return@Column
+            }
+
+            val primaryColor = AndroidColor.rgb(63, 81, 181)
 
             AndroidView(
                 factory = { context ->
                     LineChart(context).apply {
-                        // 基本配置
                         description.isEnabled = false
                         setTouchEnabled(true)
                         setScaleEnabled(true)
                         setPinchZoom(true)
                         setDrawGridBackground(false)
-
-                        // 图例
                         legend.isEnabled = true
                         legend.textColor = AndroidColor.DKGRAY
-
-                        // X轴配置
                         xAxis.apply {
                             position = XAxis.XAxisPosition.BOTTOM
                             setDrawGridLines(true)
                             granularity = 1f
                             isGranularityEnabled = true
                         }
-
-                        // 左Y轴
                         axisLeft.apply {
                             setDrawGridLines(true)
                             gridColor = AndroidColor.argb(50, 200, 200, 200)
                         }
-
-                        // 右Y轴不显示
                         axisRight.isEnabled = false
-
-                        // 底部偏移
                         extraBottomOffset = 8f
-
-                        // 动画
                         animateX(800)
                     }
                 },
                 update = { chart ->
-                    // 根据回测结果生成模拟权益曲线数据
-                    // 实际项目中应使用 API 返回的 equity_curve
-                    val entries = generateEquityCurveEntries(totalReturn, maxDrawdown)
-                    val labels = generateDateLabels(entries.size)
+                    // 使用回测引擎返回的真实权益曲线数据
+                    val entries = ArrayList<Entry>()
+                    val labels = mutableListOf<String>()
+                    // 数据点过多时采样，避免图表过于密集
+                    val step = if (equityCurve.size > 60) equityCurve.size / 30 else 1
+                    var index = 0
+                    for (i in equityCurve.indices step step) {
+                        val (date, value) = equityCurve[i]
+                        entries.add(Entry(index.toFloat(), value.toFloat()))
+                        // 简化日期标签：只显示月/日
+                        val label = if (date.length >= 10) {
+                            "${date.substring(5, 7)}/${date.substring(8, 10)}"
+                        } else {
+                            date
+                        }
+                        labels.add(label)
+                        index++
+                    }
+                    // 确保最后一个点也包含
+                    if ((equityCurve.size - 1) % step != 0) {
+                        val (date, value) = equityCurve.last()
+                        entries.add(Entry(index.toFloat(), value.toFloat()))
+                        val label = if (date.length >= 10) {
+                            "${date.substring(5, 7)}/${date.substring(8, 10)}"
+                        } else {
+                            date
+                        }
+                        labels.add(label)
+                    }
 
                     val dataSet = LineDataSet(entries, "权益曲线").apply {
                         color = primaryColor
                         setCircleColor(primaryColor)
                         lineWidth = 2f
-                        circleRadius = 3f
+                        circleRadius = 2f
                         setDrawCircleHole(false)
-                        valueTextSize = 9f
+                        valueTextSize = 8f
                         setDrawFilled(true)
                         fillColor = primaryColor
                         fillAlpha = 40
@@ -461,46 +475,5 @@ fun EquityCurveCard(
         }
     }
 }
-
-/**
- * 生成模拟权益曲线数据点
- * 基于总收益率和最大回撤生成合理的权益曲线
- */
-private fun generateEquityCurveEntries(totalReturn: Double, maxDrawdown: Double): ArrayList<Entry> {
-    val entries = ArrayList<Entry>()
-    val points = 30  // 30个数据点
-    val initialValue = 100000.0
-    val finalValue = initialValue * (1 + totalReturn / 100.0)
-    val maxDD = Math.abs(maxDrawdown / 100.0)
-
-    for (i in 0 until points) {
-        val progress = i.toFloat() / (points - 1)
-        // 基础趋势：从初始值到最终值
-        val trendValue = initialValue + (finalValue - initialValue) * progress
-        // 添加回撤波动
-        val drawdownFactor = if (progress > 0.2f && progress < 0.8f) {
-            -maxDD * initialValue * Math.sin(progress * Math.PI).toFloat() * 0.5f
-        } else {
-            0f
-        }
-        // 添加随机波动
-        val noise = (Math.random() * 0.02 - 0.01).toFloat() * initialValue.toFloat()
-        val value: Float = (trendValue + drawdownFactor.toDouble() + noise.toDouble()).toFloat()
-        val entry = Entry(i.toFloat(), value)
-        entries.add(entry)
-    }
-    return entries
-}
-
-/**
- * 生成日期标签
- */
-private fun generateDateLabels(count: Int): List<String> {
-    val labels = mutableListOf<String>()
-    val months = arrayOf("1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月")
-    for (i in 0 until count) {
-        val monthIndex = (i * 12 / count) % 12
-        labels.add(months[monthIndex])
-    }
     return labels
 }

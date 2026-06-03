@@ -29,7 +29,8 @@ data class BacktestUiState(
     val totalTrades: Int = 0,
     val finalCapital: Double = 0.0,
     val initialCapital: Double = 100000.0,
-    val error: String? = null
+    val error: String? = null,
+    val equityCurve: List<Pair<String, Double>> = emptyList()
 )
 
 @HiltViewModel
@@ -144,20 +145,23 @@ class BacktestViewModel @Inject constructor(
                 Log.i(TAG, "回测完成: 总收益=${result.totalReturn}, 年化=${result.annualReturn}, 最大回撤=${result.maxDrawdown}, 交易次数=${result.totalTrades}")
 
                 // Step 5: Display results
+                // BacktestEngine 返回的 totalReturn/annualReturn 是小数形式（如 0.15 = 15%）
+                // UI 显示需要转换为百分比数值（如 15.00%）
                 _uiState.value = BacktestUiState(
                     symbol = symbol,
                     stockName = symbol,
                     strategyType = strategyType,
                     isLoading = false,
-                    totalReturn = result.totalReturn,
-                    annualReturn = result.annualReturn,
+                    totalReturn = result.totalReturn * 100.0,
+                    annualReturn = result.annualReturn * 100.0,
                     maxDrawdown = result.maxDrawdown,
                     sharpeRatio = result.sharpeRatio,
                     winRate = result.winRate,
                     totalTrades = result.totalTrades,
                     finalCapital = result.finalCapital,
                     initialCapital = result.initialCapital,
-                    error = null
+                    error = null,
+                    equityCurve = result.equityCurve.map { it.date to it.value }
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "回测异常: ${e.message}", e)
