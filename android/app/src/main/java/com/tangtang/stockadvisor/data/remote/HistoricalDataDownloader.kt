@@ -88,7 +88,8 @@ class HistoricalDataDownloader @Inject constructor(
                             source = "sina",
                             recordCount = cleaned.size,
                             filePath = file.absolutePath,
-                            message = "新浪财经下载成功，${cleaned.size}条记录"
+                            message = "新浪财经下载成功，${cleaned.size}条记录",
+                            records = cleaned
                         )
                     } else {
                         errors.add("新浪: CSV保存失败")
@@ -122,7 +123,8 @@ class HistoricalDataDownloader @Inject constructor(
                             source = "sohu",
                             recordCount = cleaned.size,
                             filePath = file.absolutePath,
-                            message = "搜狐财经下载成功，${cleaned.size}条记录"
+                            message = "搜狐财经下载成功，${cleaned.size}条记录",
+                            records = cleaned
                         )
                     } else {
                         errors.add("搜狐: CSV保存失败")
@@ -156,7 +158,8 @@ class HistoricalDataDownloader @Inject constructor(
                             source = "tushare",
                             recordCount = cleaned.size,
                             filePath = file.absolutePath,
-                            message = "Tushare下载成功，${cleaned.size}条记录"
+                            message = "Tushare下载成功，${cleaned.size}条记录",
+                            records = cleaned
                         )
                     } else {
                         errors.add("Tushare: CSV保存失败")
@@ -765,7 +768,8 @@ class HistoricalDataDownloader @Inject constructor(
         val source: String,
         val recordCount: Int,
         val filePath: String?,
-        val message: String
+        val message: String,
+        val records: List<Map<String, String>>? = null
     )
 
     data class DataCheckResult(

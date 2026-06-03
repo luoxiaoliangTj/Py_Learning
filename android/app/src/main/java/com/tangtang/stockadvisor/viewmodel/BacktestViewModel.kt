@@ -79,19 +79,26 @@ class BacktestViewModel @Inject constructor(
                     }
                     Log.i(TAG, "下载成功: ${downloadResult.recordCount}条，来源: ${downloadResult.source}")
 
-                    // Read the downloaded data
-                    val freshCheck = withContext(Dispatchers.IO) {
-                        historicalDataDownloader.checkExistingData(symbol)
+                    // 优先使用下载时已有的数据，避免二次读取CSV
+                    val records: List<Map<String, String>> = if (downloadResult.records != null && downloadResult.records.isNotEmpty()) {
+                        Log.i(TAG, "使用下载时已有的数据: ${downloadResult.records.size}条")
+                        downloadResult.records
+                    } else {
+                        // 降级：从CSV文件读取
+                        Log.i(TAG, "从CSV文件读取数据: ${downloadResult.filePath}")
+                        val freshCheck = withContext(Dispatchers.IO) {
+                            historicalDataDownloader.checkExistingData(symbol)
+                        }
+                        Log.i(TAG, "读取下载数据: exists=${freshCheck.exists}, count=${freshCheck.recordCount}")
+                        if (!freshCheck.exists || freshCheck.details == null) {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                error = "数据下载成功但读取失败\n文件路径: ${downloadResult.filePath}\n\n建议：重启App后重试"
+                            )
+                            return@launch
+                        }
+                        freshCheck.details
                     }
-                    Log.i(TAG, "读取下载数据: exists=${freshCheck.exists}, count=${freshCheck.recordCount}")
-                    if (!freshCheck.exists || freshCheck.details == null) {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = "数据下载成功但读取失败\n文件路径: ${downloadResult.filePath}\n\n建议：重启App后重试"
-                        )
-                        return@launch
-                    }
-                    freshCheck.details
                 }
 
                 if (records.isEmpty()) {
