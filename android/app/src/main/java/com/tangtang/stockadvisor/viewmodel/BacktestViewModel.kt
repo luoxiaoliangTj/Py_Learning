@@ -47,6 +47,11 @@ class BacktestViewModel @Inject constructor(
     val uiState: StateFlow<BacktestUiState> = _uiState.asStateFlow()
 
     fun runBacktest(symbol: String, strategyType: String = "channel", initialCapital: Double = 100000.0) {
+        // 防止重复调用：如果正在回测中，忽略新请求
+        if (_uiState.value.isLoading) {
+            Log.w(TAG, "回测进行中，忽略重复请求: $symbol/$strategyType")
+            return
+        }
         viewModelScope.launch {
             _uiState.value = BacktestUiState(
                 symbol = symbol,

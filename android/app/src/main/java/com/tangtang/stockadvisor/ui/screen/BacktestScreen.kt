@@ -66,8 +66,8 @@ fun BacktestScreen(
     // 本地策略选择状态
     var selectedStrategy by remember { mutableStateOf("channel") }
 
-    // 初始加载回测数据，策略切换时重新回测
-    LaunchedEffect(symbol, selectedStrategy) {
+    // 初始加载回测数据（仅在 symbol 首次变化时）
+    LaunchedEffect(symbol) {
         viewModel.runBacktest(symbol, selectedStrategy)
     }
 
