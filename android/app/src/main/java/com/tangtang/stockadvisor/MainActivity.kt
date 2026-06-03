@@ -132,7 +132,7 @@ fun MainScreen() {
             composable(NavRoutes.Home.route) {
                 HomeScreen(
                     onStockClick = { symbol ->
-                        navController.navigate(NavRoutes.Predict.createRoute(symbol))
+                        navController.navigate(NavRoutes.StockDetail.createRoute(symbol))
                     },
                     onSearchClick = {
                         navController.navigate(NavRoutes.StockSearch.route)
@@ -155,7 +155,7 @@ fun MainScreen() {
                 PortfolioScreen(
                     onBack = { navController.popBackStack() },
                     onStockClick = { symbol ->
-                        navController.navigate(NavRoutes.Predict.createRoute(symbol))
+                        navController.navigate(NavRoutes.StockDetail.createRoute(symbol))
                     }
                 )
             }
@@ -163,13 +163,26 @@ fun MainScreen() {
                 PortfolioManagerScreen(
                     onBack = { navController.popBackStack() },
                     onStockClick = { symbol ->
-                        navController.navigate(NavRoutes.Predict.createRoute(symbol))
+                        navController.navigate(NavRoutes.StockDetail.createRoute(symbol))
                     }
                 )
             }
             composable(NavRoutes.Settings.route) {
                 SettingsScreen(
                     onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = NavRoutes.StockDetail.route,
+                arguments = listOf(navArgument("symbol") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val symbol = backStackEntry.arguments?.getString("symbol") ?: ""
+                StockDetailScreen(
+                    symbol = symbol,
+                    onBack = { navController.popBackStack() },
+                    onPredictClick = { navController.navigate(NavRoutes.Predict.createRoute(symbol)) },
+                    onBacktestClick = { navController.navigate(NavRoutes.Backtest.createRoute(symbol)) },
+                    onMonitorClick = { navController.navigate(NavRoutes.Monitor.createRoute(symbol)) }
                 )
             }
             composable(
@@ -197,12 +210,22 @@ fun MainScreen() {
                 StockSearchScreen(
                     onBack = { navController.popBackStack() },
                     onStockSelected = { symbol ->
-                        navController.navigate(NavRoutes.Predict.createRoute(symbol))
+                        navController.navigate(NavRoutes.StockDetail.createRoute(symbol))
                     }
                 )
             }
             composable(NavRoutes.Strategy.route) {
                 StrategyScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = NavRoutes.Monitor.route,
+                arguments = listOf(navArgument("symbol") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val symbol = backStackEntry.arguments?.getString("symbol") ?: ""
+                MonitorScreen(
+                    symbol = symbol,
                     onBack = { navController.popBackStack() }
                 )
             }
