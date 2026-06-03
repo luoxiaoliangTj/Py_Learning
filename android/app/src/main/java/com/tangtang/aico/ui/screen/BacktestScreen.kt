@@ -184,6 +184,14 @@ fun BacktestScreen(
                             StrategyDetailCard(detail = uiState.strategyDetail)
                         }
 
+                        // 数据验证卡片
+                        DataVerificationCard(
+                            dataCount = uiState.dataCount,
+                            dateRange = uiState.dateRange,
+                            dataSource = uiState.dataSource,
+                            dataYears = uiState.dataYears
+                        )
+
                         Spacer(modifier = Modifier.height(4.dp))
 
                         ReturnOverviewCard(
@@ -422,6 +430,57 @@ fun StrategySelector(
             }
         }
     }
+}
+
+// ======================== 数据验证卡片 ========================
+
+@Composable
+fun DataVerificationCard(
+    dataCount: Int,
+    dateRange: String,
+    dataSource: String,
+    dataYears: Int
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "数据验证",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "K线数量: $dataCount 条",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Text(
+                text = "时间范围: $dateRange",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Text(
+                text = "数据源: ${dataSourceLabel(dataSource)} | 请求年数: ${dataYears}年",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        }
+    }
+}
+
+private fun dataSourceLabel(source: String): String = when (source) {
+    "sina" -> "新浪财经"
+    "sohu" -> "搜狐财经"
+    "tushare" -> "Tushare"
+    "all" -> "自动选择"
+    else -> source
 }
 
 // ======================== 策略详情卡片 ========================

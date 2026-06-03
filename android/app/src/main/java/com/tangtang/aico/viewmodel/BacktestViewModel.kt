@@ -37,7 +37,9 @@ data class BacktestUiState(
     // 策略详情
     val strategyDetail: String = "",
     val pluginName: String = "atr_channel",
-    val downloadMessage: String? = null
+    val downloadMessage: String? = null,
+    val dataCount: Int = 0,
+    val dateRange: String = ""
 )
 
 @HiltViewModel
@@ -199,7 +201,11 @@ class BacktestViewModel @Inject constructor(
                     dataSource = dataSource,
                     dataYears = dataYears,
                     pluginName = pluginName,
-                    strategyDetail = strategyDetail
+                    strategyDetail = strategyDetail,
+                    dataCount = klines.size,
+                    dateRange = if (klines.size >= 2) {
+                        "${klines.first().date} 至 ${klines.last().date}"
+                    } else ""
                 )
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e // 不吞掉 CancellationException
