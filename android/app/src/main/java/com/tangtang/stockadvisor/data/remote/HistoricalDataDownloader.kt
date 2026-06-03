@@ -264,8 +264,8 @@ class HistoricalDataDownloader @Inject constructor(
                 val volume = obj.get("volume")?.asString ?: "0"
                 val amount = obj.get("amount")?.asString ?: "0"
 
-                // 新浪volume是手数，转为股数
-                val volumeInShares = (volume.toDoubleOrNull() ?: 0.0) * 100
+                // 新浪K线API返回的volume已经是股数，不需要乘以100
+                val volumeInShares = volume.toDoubleOrNull() ?: 0.0
                 val amountVal = amount.toDoubleOrNull() ?: 0.0
                 // 如果没有成交额字段，估算成交额
                 val turnover = if (amountVal > 0) amountVal else (close.toDoubleOrNull() ?: 0.0) * volumeInShares
