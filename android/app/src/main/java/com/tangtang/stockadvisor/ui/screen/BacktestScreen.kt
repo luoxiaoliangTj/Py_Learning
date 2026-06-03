@@ -475,5 +475,3 @@ fun EquityCurveCard(
         }
     }
 }
-    return labels
-}
