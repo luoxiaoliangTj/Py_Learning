@@ -434,12 +434,8 @@ fun EquityCurveCard(
                             }
                         }
 
-                        if (entries.size < 2) {
-                            // 数据不足，不绘制曲线
-                            return@update
-                        }
-
-                        // 选一条曲线的颜色：正收益绿，负收益红
+                        if (entries.size >= 2) {
+                            // 选一条曲线的颜色：正收益绿，负收益红
                         val firstVal = entries.first().y
                         val lastVal = entries.last().y
                         val color = if (lastVal >= firstVal) {
@@ -467,6 +463,7 @@ fun EquityCurveCard(
                         chart.xAxis.labelCount = minOf(labels.size, 6)
                         chart.data = LineData(dataSet)
                         chart.invalidate()
+                        }
                     } catch (e: Exception) {
                         Log.w("EquityCurveCard", "权益曲线渲染失败: ${e.message}")
                     }

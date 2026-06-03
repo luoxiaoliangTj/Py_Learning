@@ -168,7 +168,7 @@ class BacktestViewModel @Inject constructor(
                         emptyList()
                     }
                 )
-            } catch (e: CancellationException) {
+            } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e // 不吞掉 CancellationException
             } catch (e: Exception) {
                 Log.e(TAG, "回测异常: ${e.message}", e)
