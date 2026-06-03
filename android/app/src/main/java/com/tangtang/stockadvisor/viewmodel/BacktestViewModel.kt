@@ -68,12 +68,12 @@ class BacktestViewModel @Inject constructor(
                     existingCheck.details ?: emptyList()
                 } else {
                     // Download fresh data
-                    Log.i(TAG, "下载历史数据...")
+                    Log.i(TAG, "下载历史数据... (本地数据: exists=${existingCheck.exists}, count=${existingCheck.recordCount})")
                     val downloadResult = historicalDataDownloader.downloadDailyData(symbol)
                     if (!downloadResult.success) {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            error = "数据下载失败: ${downloadResult.message}"
+                            error = "数据下载失败: ${downloadResult.message}\n\n建议：\n1. 检查网络连接\n2. 在「工具箱」→「下载日线数据」中手动下载\n3. 稍后再试"
                         )
                         return@launch
                     }
@@ -83,13 +83,21 @@ class BacktestViewModel @Inject constructor(
                     val freshCheck = withContext(Dispatchers.IO) {
                         historicalDataDownloader.checkExistingData(symbol)
                     }
-                    freshCheck.details ?: emptyList()
+                    Log.i(TAG, "读取下载数据: exists=${freshCheck.exists}, count=${freshCheck.recordCount}")
+                    if (!freshCheck.exists || freshCheck.details == null) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "数据下载成功但读取失败\n文件路径: ${downloadResult.filePath}\n\n建议：重启App后重试"
+                        )
+                        return@launch
+                    }
+                    freshCheck.details
                 }
 
                 if (records.isEmpty()) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "未获取到有效K线数据"
+                        error = "未获取到有效K线数据\n\n建议：\n1. 检查股票代码是否正确 ($symbol)\n2. 在「工具箱」中手动下载日线数据\n3. 稍后再试"
                     )
                     return@launch
                 }
@@ -101,7 +109,7 @@ class BacktestViewModel @Inject constructor(
                 if (klines.size < 25) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "数据不足: 需要至少25根K线，当前仅${klines.size}根"
+                        error = "数据不足: 需要至少25根K线，当前仅${klines.size}根\n\n建议：在「工具箱」中下载更多历史数据"
                     )
                     return@launch
                 }

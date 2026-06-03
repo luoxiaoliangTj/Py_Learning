@@ -35,9 +35,9 @@ class HistoricalDataDownloader @Inject constructor(
 ) {
     companion object {
         private const val TAG = "HistDataDownloader"
-        private const val SINA_KLINE_URL = "http://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData"
-        private const val SOHU_HIS_URL = "http://q.stock.sohu.com/hisHq"
-        private const val TUSHARE_DAILY_URL = "http://api.tushare.pro"
+        private const val SINA_KLINE_URL = "https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData"
+        private const val SOHU_HIS_URL = "https://q.stock.sohu.com/hisHq"
+        private const val TUSHARE_DAILY_URL = "https://api.tushare.pro"
 
         // 标准CSV列
         val STANDARD_COLUMNS = listOf("日期", "开盘", "最高", "最低", "收盘", "成交量", "成交额")
@@ -52,9 +52,10 @@ class HistoricalDataDownloader @Inject constructor(
     private val gson = Gson()
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .writeTimeout(15, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
         .build()
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA)
@@ -70,6 +71,7 @@ class HistoricalDataDownloader @Inject constructor(
         years: Int = 8
     ): DownloadResult = withContext(Dispatchers.IO) {
         Log.i(TAG, "开始下载 $symbol 的 ${years}年 日线数据...")
+        val errors = mutableListOf<String>()
 
         // 1. 尝试新浪
         try {
@@ -88,16 +90,22 @@ class HistoricalDataDownloader @Inject constructor(
                             filePath = file.absolutePath,
                             message = "新浪财经下载成功，${cleaned.size}条记录"
                         )
+                    } else {
+                        errors.add("新浪: CSV保存失败")
                     }
                 } else {
+                    errors.add("新浪: 数据验证失败(${validated.details})")
                     Log.w(TAG, "新浪数据验证失败: ${validated.details}")
                 }
+            } else {
+                errors.add("新浪: 返回空数据")
             }
         } catch (e: Exception) {
+            errors.add("新浪: ${e.message}")
             Log.w(TAG, "新浪下载失败: ${e.message}")
         }
 
-        delay(1000) // 请求间隔
+        delay(500) // 请求间隔
 
         // 2. 尝试搜狐
         try {
@@ -116,16 +124,22 @@ class HistoricalDataDownloader @Inject constructor(
                             filePath = file.absolutePath,
                             message = "搜狐财经下载成功，${cleaned.size}条记录"
                         )
+                    } else {
+                        errors.add("搜狐: CSV保存失败")
                     }
                 } else {
+                    errors.add("搜狐: 数据验证失败(${validated.details})")
                     Log.w(TAG, "搜狐数据验证失败: ${validated.details}")
                 }
+            } else {
+                errors.add("搜狐: 返回空数据")
             }
         } catch (e: Exception) {
+            errors.add("搜狐: ${e.message}")
             Log.w(TAG, "搜狐下载失败: ${e.message}")
         }
 
-        delay(1000)
+        delay(500)
 
         // 3. 尝试Tushare（需要token）
         try {
@@ -144,22 +158,28 @@ class HistoricalDataDownloader @Inject constructor(
                             filePath = file.absolutePath,
                             message = "Tushare下载成功，${cleaned.size}条记录"
                         )
+                    } else {
+                        errors.add("Tushare: CSV保存失败")
                     }
                 } else {
+                    errors.add("Tushare: 数据验证失败(${validated.details})")
                     Log.w(TAG, "Tushare数据验证失败: ${validated.details}")
                 }
+            } else {
+                errors.add("Tushare: 返回空数据(可能未配置Token)")
             }
         } catch (e: Exception) {
+            errors.add("Tushare: ${e.message}")
             Log.w(TAG, "Tushare下载失败: ${e.message}")
         }
 
-        Log.e(TAG, "所有数据源均失败: $symbol")
+        Log.e(TAG, "所有数据源均失败: $symbol, 原因: ${errors.joinToString("; ")}")
         return@withContext DownloadResult(
             success = false,
             source = "none",
             recordCount = 0,
             filePath = null,
-            message = "所有数据源均下载失败，请检查网络连接"
+            message = "所有数据源均下载失败:\n${errors.joinToString("\n")}\n\n建议：\n1. 检查网络连接\n2. 确认股票代码正确($symbol)\n3. 稍后再试"
         )
     }
 
@@ -170,6 +190,7 @@ class HistoricalDataDownloader @Inject constructor(
         val file = getCsvFile(symbol)
 
         if (!file.exists()) {
+            Log.w(TAG, "数据文件不存在: ${file.absolutePath}")
             return DataCheckResult(
                 exists = false,
                 message = "数据文件不存在",
@@ -181,6 +202,7 @@ class HistoricalDataDownloader @Inject constructor(
 
         return try {
             val records = readCsv(file)
+            Log.i(TAG, "读取CSV: ${file.absolutePath}, ${records.size}条记录")
             if (records.isEmpty()) {
                 return DataCheckResult(
                     exists = false,
@@ -218,6 +240,7 @@ class HistoricalDataDownloader @Inject constructor(
                 details = records
             )
         } catch (e: Exception) {
+            Log.e(TAG, "读取CSV失败: ${file.absolutePath}, ${e.message}", e)
             DataCheckResult(
                 exists = false,
                 message = "数据文件读取失败: ${e.message}",
@@ -236,54 +259,83 @@ class HistoricalDataDownloader @Inject constructor(
 
         val url = "$SINA_KLINE_URL?symbol=$sinaSymbol&scale=240&ma=no&datalen=$datalen"
 
-        val request = Request.Builder()
-            .url(url)
-            .addHeader("User-Agent", getRandomUserAgent())
-            .addHeader("Referer", "http://finance.sina.com.cn")
-            .addHeader("Accept", "*/*")
-            .build()
+        // 重试最多2次
+        var lastException: Exception? = null
+        for (attempt in 0..2) {
+            try {
+                if (attempt > 0) {
+                    Log.w(TAG, "新浪下载重试第${attempt}次: $symbol")
+                    delay(1000L * attempt)
+                }
 
-        val response = client.newCall(request).execute()
-        response.use {
-            if (!it.isSuccessful) throw Exception("HTTP ${it.code}")
+                val request = Request.Builder()
+                    .url(url)
+                    .addHeader("User-Agent", getRandomUserAgent())
+                    .addHeader("Referer", "https://finance.sina.com.cn")
+                    .addHeader("Accept", "*/*")
+                    .build()
 
-            val body = it.body?.string() ?: throw Exception("空响应体")
+                val response = client.newCall(request).execute()
+                response.use {
+                    if (!it.isSuccessful) {
+                        Log.w(TAG, "新浪HTTP ${it.code}: $symbol (attempt ${attempt + 1})")
+                        if (it.code == 403 || it.code == 429) {
+                            lastException = Exception("新浪API限流(HTTP ${it.code})")
+                            continue
+                        }
+                        throw Exception("HTTP ${it.code}")
+                    }
 
-            // 新浪返回的JSON可能没有键名，直接是数组
-            val jsonArray = JsonParser.parseString(body).asJsonArray
-            if (jsonArray.size() == 0) return emptyList()
+                    val body = it.body?.string() ?: throw Exception("空响应体")
 
-            val records = mutableListOf<Map<String, String>>()
-            for (element in jsonArray) {
-                val obj = element.asJsonObject
-                val day = obj.get("day")?.asString ?: continue
-                val open = obj.get("open")?.asString ?: continue
-                val high = obj.get("high")?.asString ?: continue
-                val low = obj.get("low")?.asString ?: continue
-                val close = obj.get("close")?.asString ?: continue
-                val volume = obj.get("volume")?.asString ?: "0"
-                val amount = obj.get("amount")?.asString ?: "0"
+                    // 检查是否是空数组
+                    if (body.trim() == "[]" || body.trim().isEmpty()) {
+                        Log.w(TAG, "新浪返回空数据: $symbol")
+                        return emptyList()
+                    }
 
-                // 新浪K线API返回的volume已经是股数，不需要乘以100
-                val volumeInShares = volume.toDoubleOrNull() ?: 0.0
-                val amountVal = amount.toDoubleOrNull() ?: 0.0
-                // 如果没有成交额字段，估算成交额
-                val turnover = if (amountVal > 0) amountVal else (close.toDoubleOrNull() ?: 0.0) * volumeInShares
+                    val jsonArray = JsonParser.parseString(body).asJsonArray
+                    if (jsonArray.size() == 0) return emptyList()
 
-                records.add(mapOf(
-                    "日期" to formatDate(day),
-                    "开盘" to open,
-                    "最高" to high,
-                    "最低" to low,
-                    "收盘" to close,
-                    "成交量" to volumeInShares.toLong().toString(),
-                    "成交额" to String.format("%.2f", turnover)
-                ))
+                    val records = mutableListOf<Map<String, String>>()
+                    for (element in jsonArray) {
+                        val obj = element.asJsonObject
+                        val day = obj.get("day")?.asString ?: continue
+                        val open = obj.get("open")?.asString ?: continue
+                        val high = obj.get("high")?.asString ?: continue
+                        val low = obj.get("low")?.asString ?: continue
+                        val close = obj.get("close")?.asString ?: continue
+                        val volume = obj.get("volume")?.asString ?: "0"
+                        val amount = obj.get("amount")?.asString ?: "0"
+
+                        // 新浪K线API返回的volume已经是股数，不需要乘以100
+                        val volumeInShares = volume.toDoubleOrNull() ?: 0.0
+                        val amountVal = amount.toDoubleOrNull() ?: 0.0
+                        // 如果没有成交额字段，估算成交额
+                        val turnover = if (amountVal > 0) amountVal else (close.toDoubleOrNull() ?: 0.0) * volumeInShares
+
+                        records.add(mapOf(
+                            "日期" to formatDate(day),
+                            "开盘" to open,
+                            "最高" to high,
+                            "最低" to low,
+                            "收盘" to close,
+                            "成交量" to volumeInShares.toLong().toString(),
+                            "成交额" to String.format("%.2f", turnover)
+                        ))
+                    }
+
+                    Log.i(TAG, "新浪下载: ${records.size}条记录 (attempt ${attempt + 1})")
+                    return records
+                }
+            } catch (e: Exception) {
+                lastException = e
+                Log.w(TAG, "新浪下载异常 (attempt ${attempt + 1}): ${e.message}")
             }
-
-            Log.i(TAG, "新浪下载: ${records.size}条记录")
-            return records
         }
+
+        // 所有重试都失败
+        throw lastException ?: Exception("新浪下载失败，已重试3次")
     }
 
     // ==================== 搜狐数据源 ====================
@@ -298,53 +350,72 @@ class HistoricalDataDownloader @Inject constructor(
 
         val url = "$SOHU_HIS_URL?code=$code&start=$startDate&end=$endDate&stat=1&order=D&period=d"
 
-        val request = Request.Builder()
-            .url(url)
-            .addHeader("User-Agent", getRandomUserAgent())
-            .addHeader("Referer", "http://q.stock.sohu.com/")
-            .build()
+        var lastException: Exception? = null
+        for (attempt in 0..2) {
+            try {
+                if (attempt > 0) {
+                    Log.w(TAG, "搜狐下载重试第${attempt}次: $symbol")
+                    delay(1000L * attempt)
+                }
 
-        val response = client.newCall(request).execute()
-        response.use {
-            if (!it.isSuccessful) throw Exception("HTTP ${it.code}")
+                val request = Request.Builder()
+                    .url(url)
+                    .addHeader("User-Agent", getRandomUserAgent())
+                    .addHeader("Referer", "https://q.stock.sohu.com/")
+                    .build()
 
-            val body = it.body?.string() ?: throw Exception("空响应体")
-            val jsonArray = JsonParser.parseString(body).asJsonArray
+                val response = client.newCall(request).execute()
+                response.use {
+                    if (!it.isSuccessful) {
+                        Log.w(TAG, "搜狐HTTP ${it.code}: $symbol (attempt ${attempt + 1})")
+                        throw Exception("HTTP ${it.code}")
+                    }
 
-            if (jsonArray.size() == 0 || !jsonArray[0].asJsonObject.has("hq")) {
-                return emptyList()
+                    val body = it.body?.string() ?: throw Exception("空响应体")
+                    val jsonArray = JsonParser.parseString(body).asJsonArray
+
+                    if (jsonArray.size() == 0 || !jsonArray[0].asJsonObject.has("hq")) {
+                        Log.w(TAG, "搜狐返回空数据: $symbol")
+                        return emptyList()
+                    }
+
+                    val hqArray = jsonArray[0].asJsonObject.getAsJsonArray("hq")
+                    val records = mutableListOf<Map<String, String>>()
+
+                    for (element in hqArray) {
+                        val item = element.asJsonArray
+                        // 字段顺序: [0]日期 [1]开盘 [2]收盘 [3]涨跌额 [4]涨跌幅 [5]最低 [6]最高 [7]成交量 [8]成交额
+                        if (item.size() < 9) continue
+
+                        val dateStr = item[0].asString
+                        val open = item[1].asString
+                        val close = item[2].asString
+                        val low = item[5].asString
+                        val high = item[6].asString
+                        val volume = item[7].asString
+                        val amount = item[8].asString
+
+                        records.add(mapOf(
+                            "日期" to formatDate(dateStr),
+                            "开盘" to open,
+                            "最高" to high,
+                            "最低" to low,
+                            "收盘" to close,
+                            "成交量" to volume,
+                            "成交额" to amount
+                        ))
+                    }
+
+                    Log.i(TAG, "搜狐下载: ${records.size}条记录 (attempt ${attempt + 1})")
+                    return records
+                }
+            } catch (e: Exception) {
+                lastException = e
+                Log.w(TAG, "搜狐下载异常 (attempt ${attempt + 1}): ${e.message}")
             }
-
-            val hqArray = jsonArray[0].asJsonObject.getAsJsonArray("hq")
-            val records = mutableListOf<Map<String, String>>()
-
-            for (element in hqArray) {
-                val item = element.asJsonArray
-                // 字段顺序: [0]日期 [1]开盘 [2]收盘 [3]涨跌额 [4]涨跌幅 [5]最低 [6]最高 [7]成交量 [8]成交额
-                if (item.size() < 9) continue
-
-                val dateStr = item[0].asString
-                val open = item[1].asString
-                val close = item[2].asString
-                val low = item[5].asString
-                val high = item[6].asString
-                val volume = item[7].asString
-                val amount = item[8].asString
-
-                records.add(mapOf(
-                    "日期" to formatDate(dateStr),
-                    "开盘" to open,
-                    "最高" to high,
-                    "最低" to low,
-                    "收盘" to close,
-                    "成交量" to volume,
-                    "成交额" to amount
-                ))
-            }
-
-            Log.i(TAG, "搜狐下载: ${records.size}条记录")
-            return records
         }
+
+        throw lastException ?: Exception("搜狐下载失败，已重试3次")
     }
 
     // ==================== Tushare数据源 ====================
@@ -565,7 +636,10 @@ class HistoricalDataDownloader @Inject constructor(
 
     private fun getCsvFile(symbol: String): File {
         val dataDir = File(context.filesDir, "data")
-        if (!dataDir.exists()) dataDir.mkdirs()
+        if (!dataDir.exists()) {
+            val created = dataDir.mkdirs()
+            Log.i(TAG, "数据目录创建: ${dataDir.absolutePath}, 结果: $created")
+        }
         return File(dataDir, "ccb_${symbol}_daily.csv")
     }
 
