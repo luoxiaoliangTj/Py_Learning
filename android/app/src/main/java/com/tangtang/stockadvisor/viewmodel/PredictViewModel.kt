@@ -186,7 +186,7 @@ class PredictViewModel @Inject constructor(
 
         val prices = mutableListOf<StockPrice>()
         try {
-            BufferedReader(FileReader(file, Charsets.UTF_8)).use { reader ->
+            BufferedReader(java.io.InputStreamReader(java.io.FileInputStream(file), Charsets.UTF_8)).use { reader ->
                 var line = reader.readLine() ?: return emptyList()
                 // Skip BOM
                 if (line.startsWith("\uFEFF")) line = line.substring(1)
