@@ -259,7 +259,7 @@ class HistoricalDataDownloader @Inject constructor(
 
         val url = "$SINA_KLINE_URL?symbol=$sinaSymbol&scale=240&ma=no&datalen=$datalen"
 
-        // 重试最多2次
+        // 重试最多3次
         var lastException: Exception? = null
         for (attempt in 0..2) {
             try {
@@ -276,65 +276,60 @@ class HistoricalDataDownloader @Inject constructor(
                     .build()
 
                 val response = client.newCall(request).execute()
-                response.use {
-                    if (!it.isSuccessful) {
-                        Log.w(TAG, "新浪HTTP ${it.code}: $symbol (attempt ${attempt + 1})")
-                        if (it.code == 403 || it.code == 429) {
-                            lastException = Exception("新浪API限流(HTTP ${it.code})")
-                            continue
-                        }
-                        throw Exception("HTTP ${it.code}")
-                    }
-
-                    val body = it.body?.string() ?: throw Exception("空响应体")
-
-                    // 检查是否是空数组
-                    if (body.trim() == "[]" || body.trim().isEmpty()) {
-                        Log.w(TAG, "新浪返回空数据: $symbol")
-                        return emptyList()
-                    }
-
-                    val jsonArray = JsonParser.parseString(body).asJsonArray
-                    if (jsonArray.size() == 0) return emptyList()
-
-                    val records = mutableListOf<Map<String, String>>()
-                    for (element in jsonArray) {
-                        val obj = element.asJsonObject
-                        val day = obj.get("day")?.asString ?: continue
-                        val open = obj.get("open")?.asString ?: continue
-                        val high = obj.get("high")?.asString ?: continue
-                        val low = obj.get("low")?.asString ?: continue
-                        val close = obj.get("close")?.asString ?: continue
-                        val volume = obj.get("volume")?.asString ?: "0"
-                        val amount = obj.get("amount")?.asString ?: "0"
-
-                        // 新浪K线API返回的volume已经是股数，不需要乘以100
-                        val volumeInShares = volume.toDoubleOrNull() ?: 0.0
-                        val amountVal = amount.toDoubleOrNull() ?: 0.0
-                        // 如果没有成交额字段，估算成交额
-                        val turnover = if (amountVal > 0) amountVal else (close.toDoubleOrNull() ?: 0.0) * volumeInShares
-
-                        records.add(mapOf(
-                            "日期" to formatDate(day),
-                            "开盘" to open,
-                            "最高" to high,
-                            "最低" to low,
-                            "收盘" to close,
-                            "成交量" to volumeInShares.toLong().toString(),
-                            "成交额" to String.format("%.2f", turnover)
-                        ))
-                    }
-
-                    Log.i(TAG, "新浪下载: ${records.size}条记录 (attempt ${attempt + 1})")
-                    return records
+                if (!response.isSuccessful) {
+                    val code = response.code
+                    response.close()
+                    Log.w(TAG, "新浪HTTP $code: $symbol (attempt ${attempt + 1})")
+                    lastException = Exception("新浪HTTP $code")
+                    continue // 重试
                 }
+
+                val body = response.body?.string() ?: ""
+                response.close()
+
+                if (body.trim() == "[]" || body.trim().isEmpty()) {
+                    Log.w(TAG, "新浪返回空数据: $symbol")
+                    return emptyList()
+                }
+
+                val jsonArray = JsonParser.parseString(body).asJsonArray
+                if (jsonArray.size() == 0) return emptyList()
+
+                val records = mutableListOf<Map<String, String>>()
+                for (element in jsonArray) {
+                    val obj = element.asJsonObject
+                    val day = obj.get("day")?.asString ?: continue
+                    val open = obj.get("open")?.asString ?: continue
+                    val high = obj.get("high")?.asString ?: continue
+                    val low = obj.get("low")?.asString ?: continue
+                    val close = obj.get("close")?.asString ?: continue
+                    val volume = obj.get("volume")?.asString ?: "0"
+                    val amount = obj.get("amount")?.asString ?: "0"
+
+                    // 新浪K线API返回的volume已经是股数，不需要乘以100
+                    val volumeInShares = volume.toDoubleOrNull() ?: 0.0
+                    val amountVal = amount.toDoubleOrNull() ?: 0.0
+                    val turnover = if (amountVal > 0) amountVal else (close.toDoubleOrNull() ?: 0.0) * volumeInShares
+
+                    records.add(mapOf(
+                        "日期" to formatDate(day),
+                        "开盘" to open,
+                        "最高" to high,
+                        "最低" to low,
+                        "收盘" to close,
+                        "成交量" to volumeInShares.toLong().toString(),
+                        "成交额" to String.format("%.2f", turnover)
+                    ))
+                }
+
+                Log.i(TAG, "新浪下载: ${records.size}条记录 (attempt ${attempt + 1})")
+                return records
             } catch (e: Exception) {
                 lastException = e
                 Log.w(TAG, "新浪下载异常 (attempt ${attempt + 1}): ${e.message}")
             }
         }
 
-        // 所有重试都失败
         throw lastException ?: Exception("新浪下载失败，已重试3次")
     }
 
@@ -365,50 +360,52 @@ class HistoricalDataDownloader @Inject constructor(
                     .build()
 
                 val response = client.newCall(request).execute()
-                response.use {
-                    if (!it.isSuccessful) {
-                        Log.w(TAG, "搜狐HTTP ${it.code}: $symbol (attempt ${attempt + 1})")
-                        throw Exception("HTTP ${it.code}")
-                    }
-
-                    val body = it.body?.string() ?: throw Exception("空响应体")
-                    val jsonArray = JsonParser.parseString(body).asJsonArray
-
-                    if (jsonArray.size() == 0 || !jsonArray[0].asJsonObject.has("hq")) {
-                        Log.w(TAG, "搜狐返回空数据: $symbol")
-                        return emptyList()
-                    }
-
-                    val hqArray = jsonArray[0].asJsonObject.getAsJsonArray("hq")
-                    val records = mutableListOf<Map<String, String>>()
-
-                    for (element in hqArray) {
-                        val item = element.asJsonArray
-                        // 字段顺序: [0]日期 [1]开盘 [2]收盘 [3]涨跌额 [4]涨跌幅 [5]最低 [6]最高 [7]成交量 [8]成交额
-                        if (item.size() < 9) continue
-
-                        val dateStr = item[0].asString
-                        val open = item[1].asString
-                        val close = item[2].asString
-                        val low = item[5].asString
-                        val high = item[6].asString
-                        val volume = item[7].asString
-                        val amount = item[8].asString
-
-                        records.add(mapOf(
-                            "日期" to formatDate(dateStr),
-                            "开盘" to open,
-                            "最高" to high,
-                            "最低" to low,
-                            "收盘" to close,
-                            "成交量" to volume,
-                            "成交额" to amount
-                        ))
-                    }
-
-                    Log.i(TAG, "搜狐下载: ${records.size}条记录 (attempt ${attempt + 1})")
-                    return records
+                if (!response.isSuccessful) {
+                    val code = response.code
+                    response.close()
+                    Log.w(TAG, "搜狐HTTP $code: $symbol (attempt ${attempt + 1})")
+                    lastException = Exception("搜狐HTTP $code")
+                    continue
                 }
+
+                val body = response.body?.string() ?: ""
+                response.close()
+
+                val jsonArray = JsonParser.parseString(body).asJsonArray
+
+                if (jsonArray.size() == 0 || !jsonArray[0].asJsonObject.has("hq")) {
+                    Log.w(TAG, "搜狐返回空数据: $symbol")
+                    return emptyList()
+                }
+
+                val hqArray = jsonArray[0].asJsonObject.getAsJsonArray("hq")
+                val records = mutableListOf<Map<String, String>>()
+
+                for (element in hqArray) {
+                    val item = element.asJsonArray
+                    if (item.size() < 9) continue
+
+                    val dateStr = item[0].asString
+                    val open = item[1].asString
+                    val close = item[2].asString
+                    val low = item[5].asString
+                    val high = item[6].asString
+                    val volume = item[7].asString
+                    val amount = item[8].asString
+
+                    records.add(mapOf(
+                        "日期" to formatDate(dateStr),
+                        "开盘" to open,
+                        "最高" to high,
+                        "最低" to low,
+                        "收盘" to close,
+                        "成交量" to volume,
+                        "成交额" to amount
+                    ))
+                }
+
+                Log.i(TAG, "搜狐下载: ${records.size}条记录 (attempt ${attempt + 1})")
+                return records
             } catch (e: Exception) {
                 lastException = e
                 Log.w(TAG, "搜狐下载异常 (attempt ${attempt + 1}): ${e.message}")
