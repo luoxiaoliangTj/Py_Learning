@@ -1,7 +1,7 @@
 package com.tangtang.stockadvisor.ui.screen
 
 import android.graphics.Color as AndroidColor
-import java.util.ArrayList
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,10 +63,8 @@ fun BacktestScreen(
     viewModel: BacktestViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    // 本地策略选择状态
     var selectedStrategy by remember { mutableStateOf("channel") }
 
-    // 初始加载回测数据（仅在 symbol 首次变化时）
     LaunchedEffect(symbol) {
         viewModel.runBacktest(symbol, selectedStrategy)
     }
@@ -124,13 +122,18 @@ fun BacktestScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(16.dp)
+                        ) {
                             Text(
                                 text = uiState.error ?: "未知错误",
                                 color = MaterialTheme.colorScheme.error
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Button(onClick = { viewModel.runBacktest(symbol, selectedStrategy) }) {
+                            Button(onClick = {
+                                viewModel.runBacktest(symbol, selectedStrategy)
+                            }) {
                                 Text("重试")
                             }
                         }
@@ -144,7 +147,6 @@ fun BacktestScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // 标题
                         Text(
                             text = "${uiState.stockName} (${uiState.symbol})",
                             style = MaterialTheme.typography.titleLarge,
@@ -158,7 +160,6 @@ fun BacktestScreen(
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // 收益概览卡片
                         ReturnOverviewCard(
                             totalReturn = uiState.totalReturn,
                             annualReturn = uiState.annualReturn,
@@ -166,7 +167,6 @@ fun BacktestScreen(
                             initialCapital = uiState.initialCapital
                         )
 
-                        // 风险指标卡片
                         RiskMetricsCard(
                             maxDrawdown = uiState.maxDrawdown,
                             sharpeRatio = uiState.sharpeRatio,
@@ -174,7 +174,6 @@ fun BacktestScreen(
                             totalTrades = uiState.totalTrades
                         )
 
-                        // 权益曲线图（MPAndroidChart LineChart）
                         EquityCurveCard(
                             equityCurve = uiState.equityCurve
                         )
@@ -187,10 +186,6 @@ fun BacktestScreen(
     }
 }
 
-/**
- * 策略选择器
- * 支持通道策略和趋势策略切换
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StrategySelector(
@@ -228,10 +223,6 @@ fun StrategySelector(
     }
 }
 
-/**
- * 收益概览卡片
- * 显示总收益率、年化收益率、初始/最终资金
- */
 @Composable
 fun ReturnOverviewCard(
     totalReturn: Double,
@@ -299,10 +290,6 @@ fun ReturnOverviewCard(
     }
 }
 
-/**
- * 风险指标卡片
- * 显示最大回撤、夏普比率、胜率、交易次数
- */
 @Composable
 fun RiskMetricsCard(
     maxDrawdown: Double,
@@ -343,9 +330,6 @@ fun RiskMetricsCard(
     }
 }
 
-/**
- * 单个指标项
- */
 @Composable
 fun MetricItem(label: String, value: String) {
     Column {
@@ -365,7 +349,6 @@ fun MetricItem(label: String, value: String) {
 /**
  * 权益曲线卡片
  * 使用 MPAndroidChart LineChart 展示回测权益曲线
- * 由于 API 返回的 equity_curve 数据可能不可用，这里生成模拟曲线
  */
 @Composable
 fun EquityCurveCard(
@@ -383,9 +366,9 @@ fun EquityCurveCard(
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (equityCurve.isEmpty()) {
+            if (equityCurve.size < 2) {
                 Text(
-                    text = "暂无权益曲线数据",
+                    text = if (equityCurve.isEmpty()) "暂无权益曲线数据" else "数据不足，无法绘制曲线",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -416,57 +399,77 @@ fun EquityCurveCard(
                         }
                         axisRight.isEnabled = false
                         extraBottomOffset = 8f
-                        animateX(800)
                     }
                 },
                 update = { chart ->
-                    // 使用回测引擎返回的真实权益曲线数据
-                    val entries = ArrayList<Entry>()
-                    val labels = mutableListOf<String>()
-                    // 数据点过多时采样，避免图表过于密集
-                    val step = if (equityCurve.size > 60) equityCurve.size / 30 else 1
-                    var index = 0
-                    for (i in equityCurve.indices step step) {
-                        val (date, value) = equityCurve[i]
-                        entries.add(Entry(index.toFloat(), value.toFloat()))
-                        // 简化日期标签：只显示月/日
-                        val label = if (date.length >= 10) {
-                            "${date.substring(5, 7)}/${date.substring(8, 10)}"
-                        } else {
-                            date
+                    try {
+                        val entries = ArrayList<Entry>()
+                        val labels = mutableListOf<String>()
+                        val step = if (equityCurve.size > 60) equityCurve.size / 30 else 1
+                        var index = 0
+                        for (i in equityCurve.indices step step) {
+                            val (date, value) = equityCurve[i]
+                            if (value.isFinite()) {
+                                entries.add(Entry(index.toFloat(), value.toFloat()))
+                                val label = if (date.length >= 10) {
+                                    "${date.substring(5, 7)}/${date.substring(8, 10)}"
+                                } else {
+                                    date
+                                }
+                                labels.add(label)
+                                index++
+                            }
                         }
-                        labels.add(label)
-                        index++
-                    }
-                    // 确保最后一个点也包含
-                    if ((equityCurve.size - 1) % step != 0) {
-                        val (date, value) = equityCurve.last()
-                        entries.add(Entry(index.toFloat(), value.toFloat()))
-                        val label = if (date.length >= 10) {
-                            "${date.substring(5, 7)}/${date.substring(8, 10)}"
-                        } else {
-                            date
+                        // 确保最后一个点也包含
+                        if ((equityCurve.size - 1) % step != 0 && entries.isNotEmpty()) {
+                            val (date, value) = equityCurve.last()
+                            if (value.isFinite()) {
+                                entries.add(Entry(index.toFloat(), value.toFloat()))
+                                val label = if (date.length >= 10) {
+                                    "${date.substring(5, 7)}/${date.substring(8, 10)}"
+                                } else {
+                                    date
+                                }
+                                labels.add(label)
+                            }
                         }
-                        labels.add(label)
-                    }
 
-                    val dataSet = LineDataSet(entries, "权益曲线").apply {
-                        color = primaryColor
-                        setCircleColor(primaryColor)
-                        lineWidth = 2f
-                        circleRadius = 2f
-                        setDrawCircleHole(false)
-                        valueTextSize = 8f
-                        setDrawFilled(true)
-                        fillColor = primaryColor
-                        fillAlpha = 40
-                        mode = LineDataSet.Mode.CUBIC_BEZIER
-                        setDrawValues(false)
-                    }
+                        if (entries.size < 2) {
+                            // 数据不足，不绘制曲线
+                            return@update
+                        }
 
-                    chart.xAxis.valueFormatter = IndexAxisValueFormatter(labels)
-                    chart.data = LineData(dataSet)
-                    chart.invalidate()
+                        // 选一条曲线的颜色：正收益绿，负收益红
+                        val firstVal = entries.first().y
+                        val lastVal = entries.last().y
+                        val color = if (lastVal >= firstVal) {
+                            AndroidColor.rgb(76, 175, 80)
+                        } else {
+                            AndroidColor.rgb(244, 67, 54)
+                        }
+
+                        val dataSet = LineDataSet(entries, "权益曲线").apply {
+                            this.color = color
+                            setCircleColor(color)
+                            lineWidth = 2f
+                            circleRadius = 1.5f
+                            setDrawCircleHole(false)
+                            valueTextSize = 0f
+                            setDrawFilled(true)
+                            fillColor = color
+                            fillAlpha = 30
+                            mode = LineDataSet.Mode.LINEAR
+                            setDrawValues(false)
+                            setDrawCircles(false)
+                        }
+
+                        chart.xAxis.valueFormatter = IndexAxisValueFormatter(labels)
+                        chart.xAxis.labelCount = minOf(labels.size, 6)
+                        chart.data = LineData(dataSet)
+                        chart.invalidate()
+                    } catch (e: Exception) {
+                        Log.w("EquityCurveCard", "权益曲线渲染失败: ${e.message}")
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

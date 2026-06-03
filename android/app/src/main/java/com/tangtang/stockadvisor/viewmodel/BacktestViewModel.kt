@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class BacktestUiState(
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val symbol: String = "",
     val stockName: String = "",
     val strategyType: String = "channel",
@@ -47,11 +47,12 @@ class BacktestViewModel @Inject constructor(
     val uiState: StateFlow<BacktestUiState> = _uiState.asStateFlow()
 
     fun runBacktest(symbol: String, strategyType: String = "channel", initialCapital: Double = 100000.0) {
-        // 防止重复调用：如果正在回测中，忽略新请求
-        if (_uiState.value.isLoading) {
+        // 防止重复调用
+        if (_uiState.value.isLoading && _uiState.value.symbol == symbol) {
             Log.w(TAG, "回测进行中，忽略重复请求: $symbol/$strategyType")
             return
         }
+
         viewModelScope.launch {
             _uiState.value = BacktestUiState(
                 symbol = symbol,
@@ -64,7 +65,6 @@ class BacktestViewModel @Inject constructor(
                 // Step 1: Download K-line data
                 Log.i(TAG, "开始回测 $symbol，策略: $strategyType")
 
-                // Check if data already exists (runs file I/O off main thread)
                 val existingCheck = withContext(Dispatchers.IO) {
                     historicalDataDownloader.checkExistingData(symbol)
                 }
@@ -73,7 +73,6 @@ class BacktestViewModel @Inject constructor(
                     Log.i(TAG, "使用已有数据: ${existingCheck.recordCount}条")
                     existingCheck.details ?: emptyList()
                 } else {
-                    // Download fresh data
                     Log.i(TAG, "下载历史数据... (本地数据: exists=${existingCheck.exists}, count=${existingCheck.recordCount})")
                     val downloadResult = historicalDataDownloader.downloadDailyData(symbol)
                     if (!downloadResult.success) {
@@ -85,12 +84,10 @@ class BacktestViewModel @Inject constructor(
                     }
                     Log.i(TAG, "下载成功: ${downloadResult.recordCount}条，来源: ${downloadResult.source}")
 
-                    // 优先使用下载时已有的数据，避免二次读取CSV
                     if (downloadResult.records != null && downloadResult.records.isNotEmpty()) {
                         Log.i(TAG, "使用下载时已有的数据: ${downloadResult.records.size}条")
                         downloadResult.records
                     } else {
-                        // 降级：从CSV文件读取
                         Log.i(TAG, "从CSV文件读取数据: ${downloadResult.filePath}")
                         val freshCheck = withContext(Dispatchers.IO) {
                             historicalDataDownloader.checkExistingData(symbol)
@@ -150,8 +147,6 @@ class BacktestViewModel @Inject constructor(
                 Log.i(TAG, "回测完成: 总收益=${result.totalReturn}, 年化=${result.annualReturn}, 最大回撤=${result.maxDrawdown}, 交易次数=${result.totalTrades}")
 
                 // Step 5: Display results
-                // BacktestEngine 返回的 totalReturn/annualReturn 是小数形式（如 0.15 = 15%）
-                // UI 显示需要转换为百分比数值（如 15.00%）
                 _uiState.value = BacktestUiState(
                     symbol = symbol,
                     stockName = symbol,
@@ -166,8 +161,15 @@ class BacktestViewModel @Inject constructor(
                     finalCapital = result.finalCapital,
                     initialCapital = result.initialCapital,
                     error = null,
-                    equityCurve = result.equityCurve.map { it.date to it.value }
+                    equityCurve = try {
+                        result.equityCurve.map { it.date to it.value }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "权益曲线转换失败: ${e.message}")
+                        emptyList()
+                    }
                 )
+            } catch (e: CancellationException) {
+                throw e // 不吞掉 CancellationException
             } catch (e: Exception) {
                 Log.e(TAG, "回测异常: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
