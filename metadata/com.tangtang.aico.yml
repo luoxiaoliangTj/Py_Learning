@@ -1,0 +1,39 @@
+Categories:
+  - Money
+License: MIT
+WebSite: https://github.com/luoxiaoliangTj/Py_Learning
+SourceCode: https://github.com/luoxiaoliangTj/Py_Learning
+IssueTracker: https://github.com/luoxiaoliangTj/Py_Learning/issues
+
+Summary: Free offline stock analysis tool with AI predictions and backtesting
+Description: |-
+  LXL.AICo is a free, privacy-respecting stock analysis tool that runs
+  entirely offline. No registration, no tracking, no backend servers.
+
+  Features:
+  - Real-time quotes (Shanghai & Shenzhen A-shares)
+  - K-line charts with 1-15 years of historical data
+  - AI predictions based on 11 statistical models
+  - Backtesting engine with 93 strategy combinations
+  - Portfolio tracking with P&L calculation
+  - Price alerts and notifications
+
+  Data sources: Sina Finance, Sohu Finance, Tushare (user selectable)
+
+  All data is stored locally on device. No personal data collected.
+
+RepoType: git
+Repo: https://github.com/luoxiaoliangTj/Py_Learning
+
+Builds:
+  - versionName: 0.2.0
+    versionCode: 2
+    commit: v0.2.0
+    subdir: android
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 0.2.0
+CurrentVersionCode: 2
