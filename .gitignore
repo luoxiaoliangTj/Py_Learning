@@ -33,3 +33,4 @@ logs/
 *.so
 *.manifest
 *.spec
+__pycache__/
