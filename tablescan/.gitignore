@@ -1,0 +1,37 @@
+# Build
+*.apk
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+build/
+.gradle/
+local.properties
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Native
+*.so
+*.jpg
+*.jpeg
+*.png
+!app/src/main/res/mipmap-*/
+
+# Temp
+*.log
+tmp/
