@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>新闻详情</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, height=device-height, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+<meta name="keywords" content="">
+<meta name="description" content="">
+<meta name="applicable-device" content="mobile">
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="format-detection" content="telephone=no" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+ <link rel="stylesheet" href="../css/base.min.css" />
+ <link rel="stylesheet" href="../css/cms.min.css" />
+<script src="../js/rem.js"></script>
+<script type="text/javascript" src="../js/j3.js"></script>
+<script type="text/javascript" src="../js/pc_mobile_skip.js"></script>
+<script type="text/javascript" src="../js/init.js?v=1"></script>
+<script type="text/javascript" src="../js/artTemplate.js"></script>
+<script type="text/javascript" src="../js/util.js"></script>
+<script type="text/javascript" src="../js/tplt.js"></script>
+<script type="text/javascript" src="../js/filterCache.js"></script>
+	<script type="text/javascript">
+		var contentId = $.getAddrUrl('id')||'071ce843c8274acaa08f21efa68032b9';
+	</script>
+</head>
+<body>
+	<div id="wrapper">
+		<div id="headerPlace"></div>
+<script type="text/html" id="header">
+	<header class="header">
+		<div class="h_left">
+			<i class="icon_list"></i>
+			<div class="menu_down">
+				<div>
+					<ul class="menu_list">
+						{{each categories as $nav}}
+							<li>
+								<div class="nav_tit">
+									<a href="{{if isEmpty($nav.module)}}javascript:void(0);{{else}}{{$nav.url}}{{/if}}">{{$nav.name}}</a>
+									{{if !isEmpty($nav.childList)}}
+										<i class="icon_arrow_down"></i>
+									{{/if}}
+								</div>
+								{{if !isEmpty($nav.childList)}}
+									<div class="subs">
+										<ul>
+											{{each $nav.childList as $subNav $ind}}
+												<li>
+													<div>
+														<a href="{{$subNav.url}}">
+															{{$subNav.name}}
+														</a>
+													</div>
+												</li>
+											{{/each}}
+										</ul>
+									</div>
+								{{/if}}
+							</li>
+						{{/each}}
+					</ul>
+				</div>
+			</div>
+		</div>
+		<a href="{{go_home()}}" class="h_center">
+			<div class="logo"></div>
+		</a>
+		<div class="h_right">
+		</div>
+	</header>
+</script>
+<script type="text/javascript">
+	window.fLinks = [];
+	window.university = {};
+	window.cdhlinks = [];
+	window.categories = [];
+	$.ajax({
+		url: $.url('f/newsCenter/ajax_get_category_and_link_list'),
+		async: false,
+		type: 'POST',
+		success: function(res){
+			if( res.state == 1 ){
+				categories = $.out(res,'data.categories')||[];
+				tplt.draw('header',{categories: categories});
+				window.fLinks = $.out(res,'data.links')||[];
+				window.university = $.out(res,'data.university')||{};
+				window.cdhlinks = $.out(res,'data.cdhlinks')||[];
+				afterDraw();
+			}
+		}
+	});
+	function afterDraw(){
+		$('.h_left .icon_list').on('click', function(){
+			var $p = $(this).parent();
+			var $m = $p.find('.menu_down');
+			if($p.hasClass('active')){
+				$p.removeClass('active');
+				$m.height(0);
+			}else{
+				$p.addClass('active');
+				var h = $m.children('div').outerHeight();
+				$m.height(h);
+			}
+		});
+		$('.h_right .icon_search').on('click', function(){
+			var $p = $(this).parent();
+			if($p.hasClass('active')){
+				$p.removeClass('active');
+			}else{
+				$p.addClass('active');
+			}
+		});
+		$(document).on('click',function(e){
+			if(!$(e.target).isMembers($('.h_left,.h_left *'))){
+				var $p = $('.h_left');
+				var $m = $p.find('.menu_down');
+				if($p.hasClass('active')){
+					$p.removeClass('active');
+					$m.height(0);
+				}
+			}
+			if( !$(e.target).isMembers( $('.h_right,.h_right *') ) ){
+				var $p = $('.h_right');
+				if( $p.hasClass('active') ){
+					$p.removeClass('active');
+				}
+			}
+		});
+		$('.menu_down .nav_tit').filter(function(){
+			return $(this).parent().find('.subs').length > 0;
+		}).on('click',function(){
+			var $li = $(this).parents('li').eq(0);
+			if($li.hasClass('active')){
+				$li.removeClass('active');
+				var h = $li.find('ul').height();
+				var m_h = $('.menu_down').height();
+				$('.menu_down').css('height',m_h - h);
+				$li.find('.subs').css('height','0px');
+			}else{
+				$li.addClass('active');
+				var h = $li.find('ul').height();
+				var m_h = $('.menu_down').height();
+				$('.menu_down').css('height',m_h+h);
+				$li.find('.subs').css('height' , h);
+			}
+		});
+	}
+</script>
+		<div id="detail_mainPlace"></div>
+		<div id="footerPlace"></div>
+<script type="text/html" id="footer">
+	<footer class="footer">
+		{{if !isEmpty(university.phone)}}
+			电话：
+			{{each university.phone}}
+				{{$value}}
+				{{if $index != university.phone.length-1}},{{/if}}
+			{{/each}}&nbsp; &nbsp; &nbsp;
+		{{/if}}
+		{{if !isEmpty(university.email)}}
+			邮箱：
+			{{each university.email}}
+				{{$value}}
+				{{if $index != university.email.length-1}},{{/if}}
+			{{/each}}<br>
+		{{/if}}
+		{{if !isEmpty(university.address)}}
+			{{each university.address}}
+				{{$value}}<br>
+			{{/each}}
+		{{/if}}
+		<div class="txt suport">技术支持：北京云智小橙科技有限公司</div>
+	</footer>
+</script>
+<script type="text/javascript">
+	tplt.draw('footer',{
+		fLinks: window.fLinks,
+		university: window.university
+	});
+	$(function(){
+		if($('footer.footer').length > 0){
+			$(window).on('resize',function(){
+				changePadd();
+			});
+			changePadd();
+			function changePadd(){
+				var h = $('footer.footer').outerHeight();
+				var w = document.documentElement.clientWidth;
+				var remH = h/w*10 + 0.266666
+				$('#wrapper,.wrapper').css('padding-bottom',remH+'rem');
+			}
+		}
+	});
+</script>
+		<div class="plugs_up_bottom" style="display: none">
+	<div class="up"></div>
+	<div class="bottom"></div>
+	<script type="text/javascript">
+		$(function(){
+			$('.plugs_up_bottom .up').on('click',function(){
+				$('html,body').animate({ scrollTop: 0 }, 500);
+			});
+			$('.plugs_up_bottom .bottom').on('click',function(){
+				$('html,body').animate({ scrollTop: $(document).height() }, 500);
+			});
+			resetState();
+			$(window).on('scroll',resetState);
+			function resetState(){
+				isNeedShowUpAndDown();
+				var wH = $(window).height();
+				var dH = $(document).height();
+				var wt = $(window).scrollTop();
+				if(wt<wH/3){
+					$('.plugs_up_bottom .up').addClass('hide');
+				}else{
+					$('.plugs_up_bottom .up').removeClass('hide');
+				}
+				if((dH-wt-wH)<wH/3){
+					$('.plugs_up_bottom .bottom').addClass('hide');
+				}else{
+					$('.plugs_up_bottom .bottom').removeClass('hide');
+				}
+			}
+		});
+		function isNeedShowUpAndDown(){
+			var wH = $(window).height();
+			var dH = $(document).height();
+			if(dH > (wH+wH/3)){
+				$('.plugs_up_bottom').show();
+			}
+		}
+	</script>
+</div>
+	</div>
+	<script type="text/html" id="detail_main">
+		<section class="news_detail">
+			<div class="tit">
+				{{ info.article.title }}
+			</div>
+			<div class="info">
+				<div class="tim">
+					<i class="icon_tim"></i>
+					{{ dateFormate(info.article.releaseDate,'yyyy-MM-dd') }}
+				</div>
+				<div class="see_num">
+					<i class="icon_see_num"></i>
+					<span class="num">{{info.article.hits||1}}</span>
+				</div>
+			</div>
+
+			{{if info.article.isExternalLink}}
+				<iframe src="/generic/web/viewer.html?file={{info.article.link}}" style="width:100%;height:80vh;border:none;"></iframe>
+			{{else}}
+				<div class="detail">
+					{{ #info.article.articleData.content }}
+				</div>
+			{{/if}}
+
+			{{if !isEmpty(info.article.attachment)}}
+				<div class="attachment">
+					<div class="attach_tit">
+						附件：
+					</div>
+					<div class="attach_con">
+						{{each info.article.attachment}}
+							<a href="{{$value}}" download>{{outFileName($value)}}</a><br>
+						{{/each}}
+					</div>
+				</div>
+			{{/if}}
+			<div class="turn_page">
+				{{if !isEmpty(info.prev)}}
+					<a class="next_page" href="{{info.prev.url}}">
+						【上一篇】
+						<span class="dot">：</span>
+						<span class="txt">{{info.prev.title}}</span>
+					</a>
+				{{/if}}
+				{{if !isEmpty(info.next)}}
+					<a class="next_page" href="{{info.next.url}}">
+						【下一篇】
+						<span class="dot">：</span>
+						<span class="txt">{{info.next.title}}</span>
+					</a>
+				{{/if}}
+			</div>
+		</section>
+	</script>
+	<script type="text/javascript">
+		template.helper('outFileName',function(url){
+			url = decodeURI(url);
+			var names = url.match(/\/[\s\S][^\/]*/g);
+			var name = names[names.length-1];
+			return name.substring(1,name.indexOf('.'));
+		});
+		$.ajax({
+			async: false, // 同步请求
+			type: "POST",
+			url: $.url('f/newsCenter/ajax_article_view'),
+			data: {
+				contentId: contentId
+			},
+			success: function(res){
+				tplt.draw('detail_main',{info: res.data});
+				isNeedShowUpAndDown();
+				category = $.out(res,'data.article.category');
+				article = $.out(res,'data.article');
+				$('title').html(category.name + '-' + article.title);
+			}
+		});
+	</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "_metadata": {
+    "description": "2025年天津美术类录取综合分数据 - 待补充",
+    "formula": "综合分 = 文化×50% + 专业×2.5×50%",
+    "current_date": "2026-06-04",
+    "note": "仅包含已有verified数据。大部分院校2025年数据缺失，需要手动搜索补充。",
+    "source": "existing app data + 待网络搜索补充"
+  },
+  "_available_data": {
+    "天津美术学院": {"minScore": 531.0, "minRank": 31231, "note": "校考专业录取最低195.8分"},
+    "天津传媒学院": {"minScore": 476.0, "minRank": 47173, "note": "民办艺术院校，2025年达本科线即可"}
+  },
+  "_missing_key_schools": {
+    "description": "以下重点院校缺失2025年天津美术类录取数据，仅有2024年数据",
+    "schools": {
+      "天津工业大学": {"scores2024": 559.75, "scores2025": null},
+      "天津大学": {"scores2024": 634.25, "scores2025": null},
+      "南开大学": {"scores2024": 636.0, "scores2025": null},
+      "天津师范大学": {"scores2024": 544.25, "scores2025": null},
+      "天津理工大学": {"scores2024": 523.5, "scores2025": null},
+      "天津科技大学": {"scores2024": 524.25, "scores2025": null},
+      "天津城建大学": {"scores2024": 514.5, "scores2025": null},
+      "天津商业大学": {"scores2024": 513.75, "scores2025": null},
+      "天津财经大学": {"scores2024": 541.5, "scores2025": null},
+      "北京工业大学": {"scores2024": 615.75, "scores2025": null},
+      "北京理工大学": {"scores2024": 644.75, "scores2025": null},
+      "苏州大学": {"scores2024": 612.5, "scores2025": null},
+      "江南大学": {"scores2024": 626.25, "scores2025": null},
+      "东华大学": {"scores2024": 613.5, "scores2025": null},
+      "吉林大学": {"scores2024": 609.25, "scores2025": null},
+      "四川大学": {"scores2024": 627.25, "scores2025": null},
+      "厦门大学": {"scores2024": 610.25, "scores2025": null}
+    }
+  },
+  "天津美术学院": {"minScore": 531.0, "minRank": 31231},
+  "天津传媒学院": {"minScore": 476.0, "minRank": 47173}
+}
